@@ -1,12 +1,16 @@
-"""Workable public job-board adapter.
+"""Workable public job-board adapter, with pagination.
 
-Endpoint:  https://apply.workable.com/api/v3/accounts/<slug>/jobs (POST, paginated)
+Endpoint:  https://apply.workable.com/api/v3/accounts/<slug>/jobs (POST)
 Detection: ``apply.workable.com/<slug>`` patterns.
 Auth:      none.
 
-Workable's public listing endpoint is a POST that returns a page of results plus
-a ``nextPage`` token. v0 of this adapter pulls the first page only; pagination
-is added when a real account exceeds 100 roles.
+Pagination contract (workplan v6 Step 2c, per Codex 3 finding 4):
+
+- POST body: ``{"limit": 100}`` for page 1; subsequent pages add
+  ``{"nextPage": <token>}``.
+- Stop when the response has no ``nextPage`` key, ``nextPage`` is falsy,
+  the same token has already been seen this run (loop guard), or the
+  ``MAX_PAGES`` cap is reached.
 """
 
 from __future__ import annotations
@@ -16,13 +20,12 @@ from datetime import date, datetime
 from typing import Any, cast
 from urllib.parse import urlparse
 
-import httpx
-
-from ..models import AtsSource, CanonicalJob
-from .base import USER_AGENT
+from ..http import RateLimitedClient
+from ..models import AtsSource
 
 WORKABLE_API = "https://apply.workable.com/api/v3/accounts/{slug}/jobs"
 SLUG_PATTERN = re.compile(r"apply\.workable\.com/(?P<slug>[a-z0-9-]+)", re.I)
+MAX_PAGES = 10
 
 
 class WorkableAdapter:
@@ -33,24 +36,38 @@ class WorkableAdapter:
         match = SLUG_PATTERN.search(host_and_path)
         return match.group("slug").lower() if match else None
 
-    async def fetch(self, slug: str, client: httpx.AsyncClient) -> list[dict[str, object]]:
+    async def fetch(self, slug: str, client: RateLimitedClient) -> list[dict[str, Any]]:
         url = WORKABLE_API.format(slug=slug)
-        resp = await client.post(
-            url,
-            headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
-            json={"limit": 100},
-        )
-        resp.raise_for_status()
-        payload = cast(dict[str, Any], resp.json())
-        results = payload.get("results", [])
-        return list(results) if isinstance(results, list) else []
+        results: list[dict[str, Any]] = []
+        seen_tokens: set[str] = set()
+        next_page: str | None = None
+        for page_index in range(MAX_PAGES):
+            body: dict[str, Any] = {"limit": 100}
+            if next_page is not None:
+                body["nextPage"] = next_page
+            resp = await client.post(url, json=body)
+            resp.raise_for_status()
+            payload = cast(dict[str, Any], resp.json())
+            page_results = payload.get("results", [])
+            if isinstance(page_results, list):
+                results.extend(page_results)
+            new_token = payload.get("nextPage")
+            if not new_token or not isinstance(new_token, str):
+                break
+            if new_token in seen_tokens:
+                break
+            seen_tokens.add(new_token)
+            next_page = new_token
+            if page_index == MAX_PAGES - 1:
+                break
+        return results
 
     def normalize(
         self,
-        raw: dict[str, object],
+        raw: dict[str, Any],
         company_name: str,
         company_domain: str,
-    ) -> CanonicalJob:
+    ) -> dict[str, Any]:
         title = str(raw.get("title", "")).strip()
         url = str(raw.get("url") or raw.get("application_url") or "")
         location_obj = raw.get("location")
@@ -63,18 +80,18 @@ class WorkableAdapter:
         employment_type = str(raw.get("employment_type")) if raw.get("employment_type") else None
         published_raw = raw.get("published")
         posted_date = _parse_iso_date(published_raw if isinstance(published_raw, str) else None)
-        return CanonicalJob(
-            company_name=company_name,
-            company_domain=company_domain,
-            role_title=title,
-            location=location or None,
-            is_remote=is_remote,
-            employment_type=employment_type,
-            url=url,  # type: ignore[arg-type]
-            posted_date=posted_date,
-            ats_source=self.source,
-            raw_payload=cast(dict[str, Any], raw),
-        )
+        return {
+            "company_name": company_name,
+            "company_domain": company_domain,
+            "role_title": title,
+            "location": location or None,
+            "is_remote": is_remote,
+            "employment_type": employment_type,
+            "url": url,
+            "posted_date": posted_date,
+            "ats_source": self.source.value,
+            "raw_payload": raw,
+        }
 
 
 def _parse_iso_date(value: str | None) -> date | None:

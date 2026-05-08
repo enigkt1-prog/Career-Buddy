@@ -12,10 +12,8 @@ from datetime import date, datetime
 from typing import Any, cast
 from urllib.parse import urlparse
 
-import httpx
-
-from ..models import AtsSource, CanonicalJob
-from .base import USER_AGENT
+from ..http import RateLimitedClient
+from ..models import AtsSource
 
 GREENHOUSE_API = "https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true"
 SLUG_PATTERNS = [
@@ -35,9 +33,9 @@ class GreenhouseAdapter:
                 return match.group("slug").lower()
         return None
 
-    async def fetch(self, slug: str, client: httpx.AsyncClient) -> list[dict[str, object]]:
+    async def fetch(self, slug: str, client: RateLimitedClient) -> list[dict[str, Any]]:
         url = GREENHOUSE_API.format(slug=slug)
-        resp = await client.get(url, headers={"User-Agent": USER_AGENT})
+        resp = await client.get(url)
         resp.raise_for_status()
         payload = cast(dict[str, Any], resp.json())
         jobs = payload.get("jobs", [])
@@ -45,10 +43,10 @@ class GreenhouseAdapter:
 
     def normalize(
         self,
-        raw: dict[str, object],
+        raw: dict[str, Any],
         company_name: str,
         company_domain: str,
-    ) -> CanonicalJob:
+    ) -> dict[str, Any]:
         title = str(raw.get("title", "")).strip()
         url = str(raw.get("absolute_url", ""))
         location_obj = raw.get("location")
@@ -57,16 +55,16 @@ class GreenhouseAdapter:
             location = str(location_obj.get("name", ""))
         updated_raw = raw.get("updated_at")
         posted_date = _parse_iso_date(updated_raw if isinstance(updated_raw, str) else None)
-        return CanonicalJob(
-            company_name=company_name,
-            company_domain=company_domain,
-            role_title=title,
-            location=location or None,
-            url=url,  # type: ignore[arg-type]
-            posted_date=posted_date,
-            ats_source=self.source,
-            raw_payload=cast(dict[str, Any], raw),
-        )
+        return {
+            "company_name": company_name,
+            "company_domain": company_domain,
+            "role_title": title,
+            "location": location or None,
+            "url": url,
+            "posted_date": posted_date,
+            "ats_source": self.source.value,
+            "raw_payload": raw,
+        }
 
 
 def _parse_iso_date(value: str | None) -> date | None:

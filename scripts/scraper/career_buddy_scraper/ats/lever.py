@@ -9,13 +9,11 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, date, datetime
-from typing import Any, cast
+from typing import Any
 from urllib.parse import urlparse
 
-import httpx
-
-from ..models import AtsSource, CanonicalJob
-from .base import USER_AGENT
+from ..http import RateLimitedClient
+from ..models import AtsSource
 
 LEVER_API = "https://api.lever.co/v0/postings/{slug}?mode=json"
 SLUG_PATTERN = re.compile(r"jobs\.lever\.co/(?P<slug>[a-z0-9-]+)", re.I)
@@ -29,19 +27,19 @@ class LeverAdapter:
         match = SLUG_PATTERN.search(host_and_path)
         return match.group("slug").lower() if match else None
 
-    async def fetch(self, slug: str, client: httpx.AsyncClient) -> list[dict[str, object]]:
+    async def fetch(self, slug: str, client: RateLimitedClient) -> list[dict[str, Any]]:
         url = LEVER_API.format(slug=slug)
-        resp = await client.get(url, headers={"User-Agent": USER_AGENT})
+        resp = await client.get(url)
         resp.raise_for_status()
         payload = resp.json()
         return list(payload) if isinstance(payload, list) else []
 
     def normalize(
         self,
-        raw: dict[str, object],
+        raw: dict[str, Any],
         company_name: str,
         company_domain: str,
-    ) -> CanonicalJob:
+    ) -> dict[str, Any]:
         title = str(raw.get("text", "")).strip()
         url = str(raw.get("hostedUrl", ""))
         categories = raw.get("categories")
@@ -54,14 +52,14 @@ class LeverAdapter:
         posted_date: date | None = None
         if isinstance(created_at_ms, (int, float)):
             posted_date = datetime.fromtimestamp(created_at_ms / 1000, tz=UTC).date()
-        return CanonicalJob(
-            company_name=company_name,
-            company_domain=company_domain,
-            role_title=title,
-            location=location or None,
-            employment_type=commitment,
-            url=url,  # type: ignore[arg-type]
-            posted_date=posted_date,
-            ats_source=self.source,
-            raw_payload=cast(dict[str, Any], raw),
-        )
+        return {
+            "company_name": company_name,
+            "company_domain": company_domain,
+            "role_title": title,
+            "location": location or None,
+            "employment_type": commitment,
+            "url": url,
+            "posted_date": posted_date,
+            "ats_source": self.source.value,
+            "raw_payload": raw,
+        }

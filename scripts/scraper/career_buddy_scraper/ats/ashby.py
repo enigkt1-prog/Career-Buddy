@@ -12,10 +12,8 @@ from datetime import date, datetime
 from typing import Any, cast
 from urllib.parse import urlparse
 
-import httpx
-
-from ..models import AtsSource, CanonicalJob
-from .base import USER_AGENT
+from ..http import RateLimitedClient
+from ..models import AtsSource
 
 ASHBY_API = "https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true"
 SLUG_PATTERN = re.compile(r"jobs\.ashbyhq\.com/(?P<slug>[a-z0-9-]+)", re.I)
@@ -29,9 +27,9 @@ class AshbyAdapter:
         match = SLUG_PATTERN.search(host_and_path)
         return match.group("slug").lower() if match else None
 
-    async def fetch(self, slug: str, client: httpx.AsyncClient) -> list[dict[str, object]]:
+    async def fetch(self, slug: str, client: RateLimitedClient) -> list[dict[str, Any]]:
         url = ASHBY_API.format(slug=slug)
-        resp = await client.get(url, headers={"User-Agent": USER_AGENT})
+        resp = await client.get(url)
         resp.raise_for_status()
         payload = cast(dict[str, Any], resp.json())
         jobs = payload.get("jobs", [])
@@ -39,10 +37,10 @@ class AshbyAdapter:
 
     def normalize(
         self,
-        raw: dict[str, object],
+        raw: dict[str, Any],
         company_name: str,
         company_domain: str,
-    ) -> CanonicalJob:
+    ) -> dict[str, Any]:
         title = str(raw.get("title", "")).strip()
         url = str(raw.get("jobUrl", ""))
         location = str(raw.get("location", "")) or None
@@ -51,18 +49,18 @@ class AshbyAdapter:
         posted_date = _parse_iso_date(published_raw if isinstance(published_raw, str) else None)
         is_remote_obj = raw.get("isRemote")
         is_remote = bool(is_remote_obj) if isinstance(is_remote_obj, bool) else False
-        return CanonicalJob(
-            company_name=company_name,
-            company_domain=company_domain,
-            role_title=title,
-            location=location,
-            is_remote=is_remote,
-            employment_type=employment_type,
-            url=url,  # type: ignore[arg-type]
-            posted_date=posted_date,
-            ats_source=self.source,
-            raw_payload=cast(dict[str, Any], raw),
-        )
+        return {
+            "company_name": company_name,
+            "company_domain": company_domain,
+            "role_title": title,
+            "location": location,
+            "is_remote": is_remote,
+            "employment_type": employment_type,
+            "url": url,
+            "posted_date": posted_date,
+            "ats_source": self.source.value,
+            "raw_payload": raw,
+        }
 
 
 def _parse_iso_date(value: str | None) -> date | None:
