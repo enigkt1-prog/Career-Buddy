@@ -118,9 +118,7 @@ def upsert_into_supabase(records: list[VcRecord]) -> tuple[int, int]:
         with conn.cursor() as cur:
             for r in merged:
                 payload = r.model_dump(mode="json", exclude_none=False)
-                payload["stage_focus"] = (
-                    r.stage_focus.value if r.stage_focus is not None else None
-                )
+                payload["stage_focus"] = r.stage_focus.value if r.stage_focus is not None else None
                 cur.execute(_UPSERT_SQL, payload)
                 row = cur.fetchone()
                 if row and row[0]:
