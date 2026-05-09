@@ -53,3 +53,4 @@ pnpm-debug.log*
 lerna-debug.log*
 career-buddy-*.png
 cloudflare-*.png
+supabase/.temp/

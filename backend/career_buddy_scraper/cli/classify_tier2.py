@@ -1,10 +1,11 @@
 """Tier-2 LLM classifier using Gemini for jobs Tier-1 regex did not match.
 
 Reads ``jobs`` rows where ``is_active = true and role_category is null``.
-Batches 100 titles per Gemini call, asks for category from the 7-value
-enum, writes results back. Free-tier budget: ~38 batch calls for 3,800
-pending = trivial against 1500 RPD. Quota-exhaustion stops cleanly,
-never auto-pays.
+Batches 500 titles per Gemini call, asks for category from the 7-value
+enum, writes results back. Free-tier budget on gemini-2.5-flash is
+20 RPD (NOT 1500 — earlier docs were wrong). 500 titles per batch ⇒
+~8 calls for 3,800 pending; falls within the 20-RPD limit with margin.
+Quota-exhaustion stops cleanly, never auto-pays.
 """
 
 from __future__ import annotations
@@ -31,7 +32,7 @@ CATEGORIES = [
     "other",
 ]
 
-BATCH_SIZE = 100
+BATCH_SIZE = 500
 
 
 def _build_prompt(titles: list[tuple[str, str]]) -> str:

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Mail, Loader2, Upload } from "lucide-react";
+import { Mail, Loader2, Upload, Pencil, Plus, Trash2, X } from "lucide-react";
 import { extractCvText } from "@/lib/cv-parser";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -23,12 +23,57 @@ type Application = {
   flash?: boolean;
 };
 
+type Position = {
+  id: string;
+  company: string;
+  role: string;
+  start_date: string;
+  end_date: string;
+  location?: string;
+  bullets: string[];
+};
+
+type Education = {
+  id: string;
+  institution: string;
+  degree: string;
+  start_date?: string;
+  end_date?: string;
+};
+
+type CvAnalysisResponse = {
+  summary?: string;
+  fit_score?: number;
+  strengths?: string[];
+  gaps?: string[];
+  recommendations?: string[];
+  target_role_categories?: string[];
+  location_preferences?: string[];
+  name?: string;
+  headline?: string;
+  work_history?: Array<Omit<Position, "id">>;
+  education?: Array<Omit<Education, "id">>;
+};
+
 type Profile = {
   built: boolean;
   cv_analyzed: boolean;
   collapsed: boolean;
-  cv_analysis?: CvAnalysis | null;
-  cv_filename?: string | null;
+  name: string;
+  target_role: string;
+  target_geo: string;
+  background: string;
+  headline: string;
+  strengths: string[];
+  gaps: string[];
+  recommendations: string[];
+  target_role_categories: string[];
+  location_preferences: string[];
+  work_history: Position[];
+  education: Education[];
+  cv_filename: string | null;
+  cv_summary: string | null;
+  cv_fit_score: number | null;
 };
 
 type State = {
@@ -54,32 +99,47 @@ type MockEmail = {
 type VcJob = {
   company: string;
   role: string;
+  role_category: string | null;
   location: string;
   url: string;
   ats_source: string;
   posted_date: string | null;
+  is_remote: boolean;
 };
 
-function relativeDays(iso: string | null): string {
-  if (!iso) return "—";
-  const ms = Date.now() - new Date(iso).getTime();
-  const days = Math.floor(ms / 86_400_000);
-  if (days <= 0) return "today";
-  if (days === 1) return "1 day ago";
-  if (days < 30) return `${days} days ago`;
-  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
-  return `${Math.floor(days / 365)}y ago`;
-}
-
-type CvAnalysis = {
-  strengths: string[];
-  gaps: string[];
-  recommendations: string[];
-  fit_score: number;
-  summary: string;
-};
+type ScoredJob = VcJob & { fit: number; why: string };
 
 const STORAGE_KEY = "career-buddy-state";
+
+const DEFAULT_PROFILE: Profile = {
+  built: false,
+  cv_analyzed: false,
+  collapsed: false,
+  name: "",
+  target_role: "Founders Associate / Operating Associate",
+  target_geo: "Berlin / Remote-DACH",
+  background: "Business-background grad, 0-2 years experience",
+  headline: "",
+  strengths: ["B2B-sales", "Structured thinking"],
+  gaps: ["SaaS metrics", "ML fundamentals"],
+  recommendations: [],
+  target_role_categories: ["founders-associate", "bizops", "strategy"],
+  location_preferences: ["Berlin", "Remote-DACH"],
+  work_history: [],
+  education: [],
+  cv_filename: null,
+  cv_summary: null,
+  cv_fit_score: null,
+};
+
+const ROLE_CATEGORY_OPTIONS = [
+  "founders-associate",
+  "bizops",
+  "strategy",
+  "bd",
+  "chief-of-staff",
+  "investment-analyst",
+] as const;
 
 const SEED_APPS: Application[] = [
   { id: "a1", company: "Pedlar", role: "Founders Associate", status: "applied", last_event: "—", next_action: "Awaiting reply", fit: 7.2 },
@@ -92,33 +152,59 @@ const SEED_APPS: Application[] = [
   { id: "a8", company: "Speedinvest", role: "Investment Associate", status: "applied", last_event: "—", next_action: "Awaiting reply", fit: 8.7 },
 ];
 
-const FIT_SCORES: Record<string, number> = {
-  "Cherry Ventures": 8.7,
-  "Earlybird Venture Capital": 8.4,
-  "Project A Ventures": 8.1,
-  "Picus Capital": 7.9,
-  Speedinvest: 7.7,
-  "HV Capital": 7.5,
-  Lakestar: 7.3,
-  Atomico: 7.1,
-  "General Catalyst": 6.9,
-  Plural: 6.7,
-  "9Yards Capital": 6.5,
-  "468 Capital": 6.3,
-  Sastrify: 6.1,
-  "Trade Republic": 5.9,
-  Helsing: 5.7,
-};
+const DACH_CITIES = ["berlin", "munich", "münchen", "hamburg", "köln", "cologne", "frankfurt", "vienna", "wien", "zurich", "zürich", "düsseldorf"];
+
+function emptyState(): State {
+  return {
+    applications: SEED_APPS,
+    profile: { ...DEFAULT_PROFILE },
+    sync_completed: false,
+  };
+}
+
+function migrateProfile(raw: unknown): Profile {
+  const base = { ...DEFAULT_PROFILE };
+  if (!raw || typeof raw !== "object") return base;
+  const r = raw as Record<string, unknown>;
+  const arr = (k: string): string[] => (Array.isArray(r[k]) ? (r[k] as string[]).filter((x) => typeof x === "string") : base[k as keyof Profile] as string[]);
+  const str = (k: string, fb: string): string => (typeof r[k] === "string" ? (r[k] as string) : fb);
+  const num = (k: string): number | null => (typeof r[k] === "number" ? (r[k] as number) : null);
+  return {
+    built: r.built === true,
+    cv_analyzed: r.cv_analyzed === true,
+    collapsed: r.collapsed === true,
+    name: str("name", ""),
+    target_role: str("target_role", base.target_role),
+    target_geo: str("target_geo", base.target_geo),
+    background: str("background", base.background),
+    headline: str("headline", ""),
+    strengths: arr("strengths"),
+    gaps: arr("gaps"),
+    recommendations: arr("recommendations"),
+    target_role_categories: arr("target_role_categories"),
+    location_preferences: arr("location_preferences"),
+    work_history: Array.isArray(r.work_history) ? (r.work_history as Position[]).map((p, i) => ({ ...p, id: p.id || `w${i}_${Date.now()}` })) : [],
+    education: Array.isArray(r.education) ? (r.education as Education[]).map((e, i) => ({ ...e, id: e.id || `e${i}_${Date.now()}` })) : [],
+    cv_filename: typeof r.cv_filename === "string" ? r.cv_filename : null,
+    cv_summary: typeof r.cv_summary === "string" ? r.cv_summary : null,
+    cv_fit_score: num("cv_fit_score"),
+  };
+}
 
 function loadState(): State {
-  if (typeof window === "undefined") {
-    return { applications: SEED_APPS, profile: { built: false, cv_analyzed: false, collapsed: false }, sync_completed: false };
-  }
+  if (typeof window === "undefined") return emptyState();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as State;
-  } catch {}
-  return { applications: SEED_APPS, profile: { built: false, cv_analyzed: false, collapsed: false }, sync_completed: false };
+    if (!raw) return emptyState();
+    const parsed = JSON.parse(raw) as { applications?: Application[]; profile?: unknown; sync_completed?: boolean };
+    return {
+      applications: Array.isArray(parsed.applications) && parsed.applications.length > 0 ? parsed.applications : SEED_APPS,
+      profile: migrateProfile(parsed.profile),
+      sync_completed: parsed.sync_completed === true,
+    };
+  } catch {
+    return emptyState();
+  }
 }
 
 function statusBadge(s: Status) {
@@ -144,6 +230,73 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function relativeDays(iso: string | null): string {
+  if (!iso) return "—";
+  const ms = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(ms / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "1 day ago";
+  if (days < 30) return `${days} days ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
+}
+
+function fitScore(job: VcJob, profile: Profile): number {
+  let score = 5.0;
+
+  if (job.role_category && profile.target_role_categories.includes(job.role_category)) {
+    score += 2.5;
+  } else if (job.role_category && job.role_category !== "other") {
+    score += 0.4;
+  } else if (!job.role_category) {
+    const t = `${job.role}`.toLowerCase();
+    if (/founder|operating|biz ?ops|chief of staff|cos\b|strategy|partnerships|investment/.test(t)) {
+      score += 1.5;
+    }
+  }
+
+  const loc = (job.location || "").toLowerCase();
+  const prefs = profile.location_preferences.map((p) => p.toLowerCase());
+  const wantsRemote = prefs.some((p) => /remote/.test(p));
+  if (wantsRemote && job.is_remote) score += 1.5;
+  if (prefs.some((p) => p && loc.includes(p))) score += 1.5;
+  else if (prefs.some((p) => /dach|germany|deutschland/.test(p)) && DACH_CITIES.some((c) => loc.includes(c))) score += 1.0;
+
+  if (job.posted_date) {
+    const days = (Date.now() - new Date(job.posted_date).getTime()) / 86_400_000;
+    if (days <= 7) score += 0.5;
+    else if (days <= 30) score += 0.2;
+    else if (days > 90) score -= 0.5;
+  }
+
+  const haystack = `${job.role} ${job.company}`.toLowerCase();
+  const overlaps = profile.strengths.filter((s) => {
+    const word = s.toLowerCase().split(/[\s,/-]+/)[0];
+    return word.length > 3 && haystack.includes(word);
+  }).length;
+  score += Math.min(overlaps * 0.3, 1.0);
+
+  return Math.max(1.0, Math.min(9.9, Math.round(score * 10) / 10));
+}
+
+function fitWhy(job: VcJob, profile: Profile): string {
+  const reasons: string[] = [];
+  if (job.role_category && profile.target_role_categories.includes(job.role_category)) {
+    reasons.push(`role match: ${job.role_category}`);
+  }
+  const loc = (job.location || "").toLowerCase();
+  const prefs = profile.location_preferences.map((p) => p.toLowerCase());
+  if (prefs.some((p) => p && loc.includes(p))) reasons.push(`location: ${job.location}`);
+  else if (job.is_remote && prefs.some((p) => /remote/.test(p))) reasons.push("remote-friendly");
+  else if (prefs.some((p) => /dach|germany|deutschland/.test(p)) && DACH_CITIES.some((c) => loc.includes(c))) reasons.push(`DACH: ${job.location}`);
+  if (job.posted_date) {
+    const days = (Date.now() - new Date(job.posted_date).getTime()) / 86_400_000;
+    if (days <= 7) reasons.push("posted this week");
+  }
+  if (reasons.length === 0) return "Review JD to see if it fits.";
+  return reasons.slice(0, 3).join(" · ");
+}
+
 export default function CareerBuddy() {
   const [state, setState] = useState<State>(() => loadState());
   const [chatInput, setChatInput] = useState("");
@@ -156,6 +309,7 @@ export default function CareerBuddy() {
   const [syncing, setSyncing] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [emails, setEmails] = useState<MockEmail[]>([]);
   const [jobs, setJobs] = useState<VcJob[]>([]);
   const [insightsShimmer, setInsightsShimmer] = useState(false);
@@ -175,10 +329,10 @@ export default function CareerBuddy() {
     void (async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select("company_name, role_title, location, url, ats_source, posted_date")
+        .select("company_name, role_title, role_category, location, url, ats_source, posted_date, is_remote")
         .eq("is_active", true)
         .order("posted_date", { ascending: false, nullsFirst: false })
-        .limit(30);
+        .limit(60);
       if (error) {
         console.error("[jobs] fetch failed", error);
         return;
@@ -186,19 +340,23 @@ export default function CareerBuddy() {
       const rows = (data ?? []) as Array<{
         company_name: string;
         role_title: string;
+        role_category: string | null;
         location: string | null;
         url: string;
         ats_source: string;
         posted_date: string | null;
+        is_remote: boolean | null;
       }>;
       setJobs(
         rows.map((r) => ({
           company: r.company_name,
           role: r.role_title,
+          role_category: r.role_category,
           location: r.location ?? "—",
           url: r.url,
           ats_source: r.ats_source,
           posted_date: r.posted_date,
+          is_remote: r.is_remote === true,
         })),
       );
     })();
@@ -219,10 +377,55 @@ export default function CareerBuddy() {
     setCvFilename(file.name);
     try {
       const text = await extractCvText(file);
+      if (!text || text.length < 50) {
+        setCvError("Could not extract enough text from the file. Try pasting the CV instead.");
+        return;
+      }
       setCvText(text);
     } catch (e) {
       setCvError(e instanceof Error ? e.message : "Could not read file");
     }
+  }
+
+  function applyAnalysis(analysis: CvAnalysisResponse) {
+    setState((s) => {
+      const p = s.profile;
+      const work = (analysis.work_history ?? []).map((w, i) => ({
+        id: `w${Date.now()}_${i}`,
+        company: w.company || "",
+        role: w.role || "",
+        start_date: w.start_date || "",
+        end_date: w.end_date || "",
+        location: w.location,
+        bullets: Array.isArray(w.bullets) ? w.bullets.filter((b) => typeof b === "string") : [],
+      }));
+      const edu = (analysis.education ?? []).map((e, i) => ({
+        id: `e${Date.now()}_${i}`,
+        institution: e.institution || "",
+        degree: e.degree || "",
+        start_date: e.start_date,
+        end_date: e.end_date,
+      }));
+      return {
+        ...s,
+        profile: {
+          ...p,
+          cv_analyzed: true,
+          cv_filename: cvFilename,
+          cv_summary: analysis.summary ?? null,
+          cv_fit_score: typeof analysis.fit_score === "number" ? analysis.fit_score : null,
+          name: analysis.name?.trim() || p.name,
+          headline: analysis.headline?.trim() || p.headline,
+          strengths: Array.isArray(analysis.strengths) && analysis.strengths.length ? analysis.strengths : p.strengths,
+          gaps: Array.isArray(analysis.gaps) && analysis.gaps.length ? analysis.gaps : p.gaps,
+          recommendations: Array.isArray(analysis.recommendations) && analysis.recommendations.length ? analysis.recommendations : p.recommendations,
+          target_role_categories: Array.isArray(analysis.target_role_categories) && analysis.target_role_categories.length ? analysis.target_role_categories : p.target_role_categories,
+          location_preferences: Array.isArray(analysis.location_preferences) && analysis.location_preferences.length ? analysis.location_preferences : p.location_preferences,
+          work_history: work.length ? work : p.work_history,
+          education: edu.length ? edu : p.education,
+        },
+      };
+    });
   }
 
   async function analyzeCv() {
@@ -233,25 +436,14 @@ export default function CareerBuddy() {
     setCvError(null);
     setCvLoading(true);
     try {
+      const target = `${state.profile.target_role}, ${state.profile.target_geo}, ${state.profile.background}`;
       const { data, error } = await supabase.functions.invoke("analyze-cv", {
-        body: {
-          cvText,
-          targetProfile:
-            "Founders Associate / Operating Associate, Berlin / Remote-DACH, business-background grad (CLSBE Master).",
-        },
+        body: { cvText, targetProfile: target },
       });
       if (error) throw error;
-      const analysis = (data as { analysis?: CvAnalysis; error?: string })?.analysis;
-      if (!analysis) throw new Error((data as { error?: string })?.error || "No analysis returned");
-      setState((s) => ({
-        ...s,
-        profile: {
-          ...s.profile,
-          cv_analyzed: true,
-          cv_analysis: analysis,
-          cv_filename: cvFilename,
-        },
-      }));
+      const payload = data as { analysis?: CvAnalysisResponse; error?: string };
+      if (!payload?.analysis) throw new Error(payload?.error || "No analysis returned");
+      applyAnalysis(payload.analysis);
     } catch (e) {
       setCvError(e instanceof Error ? e.message : "Analysis failed");
     } finally {
@@ -276,9 +468,7 @@ export default function CareerBuddy() {
     if (syncing) return;
     setSyncing(true);
     setSummary(null);
-
     const order = ["Pedlar", "Avi", "Picus Capital", "Cherry Ventures", "Project A", "Earlybird", "Rust", "Speedinvest"];
-
     order.forEach((company, i) => {
       setTimeout(() => {
         setState((s) => ({
@@ -293,7 +483,6 @@ export default function CareerBuddy() {
         }, 400);
       }, i * 250);
     });
-
     setTimeout(() => {
       setSyncing(false);
       setSummary("8 emails scanned · 6 applications updated · 6 next actions created · 1 offer received");
@@ -336,17 +525,26 @@ export default function CareerBuddy() {
     setTimeout(() => setInsightsShimmer(false), 300);
   }
 
-  const rankedJobs = useMemo(() => {
+  const rankedJobs: ScoredJob[] = useMemo(() => {
     return jobs
-      .map((j) => ({ ...j, fit: FIT_SCORES[j.company] ?? 6.0 }))
-      .sort((a, b) => b.fit - a.fit);
-  }, [jobs]);
+      .map((j) => ({
+        ...j,
+        fit: fitScore(j, state.profile),
+        why: fitWhy(j, state.profile),
+      }))
+      .sort((a, b) => {
+        if (b.fit !== a.fit) return b.fit - a.fit;
+        const ad = a.posted_date ? new Date(a.posted_date).getTime() : 0;
+        const bd = b.posted_date ? new Date(b.posted_date).getTime() : 0;
+        return bd - ad;
+      })
+      .slice(0, 30);
+  }, [jobs, state.profile]);
 
-  const top3 = new Set(rankedJobs.slice(0, 3).map((j) => j.company));
+  const topThreshold = rankedJobs[2]?.fit ?? 0;
 
   return (
     <div className="min-h-screen bg-white text-[#111827]" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
-      {/* Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="font-semibold text-lg" style={{ color: "#7c3aed" }}>Career-Buddy</div>
@@ -358,7 +556,6 @@ export default function CareerBuddy() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6">
-        {/* Section 1 */}
         <section className="py-8">
           <h1 className="text-3xl font-semibold tracking-tight mb-2">Land your first startup role.</h1>
           <p className="text-base text-gray-500 mb-6">
@@ -386,11 +583,11 @@ export default function CareerBuddy() {
               </button>
             </div>
 
-            {chatReply && (
-              <div className="mt-4 bg-gray-50 rounded-lg p-3 text-sm">{chatReply}</div>
-            )}
+            {chatReply && <div className="mt-4 bg-gray-50 rounded-lg p-3 text-sm">{chatReply}</div>}
 
-            {(state.profile.built || chatReply) && <ProfileCard state={state} setState={setState} />}
+            {(state.profile.built || chatReply) && (
+              <ProfileCard profile={state.profile} onEdit={() => setEditProfileOpen(true)} onExpand={() => setState((s) => ({ ...s, profile: { ...s.profile, collapsed: false } }))} syncCompleted={state.sync_completed} />
+            )}
           </div>
 
           {(state.profile.built || chatReply) && (
@@ -399,7 +596,7 @@ export default function CareerBuddy() {
               <div className="flex items-center gap-3 mb-3">
                 <label className="inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-lg cursor-pointer hover:bg-gray-50">
                   <Upload className="w-4 h-4" />
-                  <span>Upload .pdf / .docx</span>
+                  <span>Upload .pdf / .docx / .txt</span>
                   <input
                     type="file"
                     accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
@@ -414,27 +611,37 @@ export default function CareerBuddy() {
               </div>
               <textarea
                 rows={4}
-                className="w-full border rounded-lg p-2 text-sm"
+                className="w-full border rounded-lg p-2 text-sm font-mono"
                 style={{ borderRadius: 8 }}
                 placeholder="…or paste CV text here"
                 value={cvText}
                 onChange={(e) => setCvText(e.target.value)}
               />
               {cvError && <div className="mt-2 text-xs text-red-600">{cvError}</div>}
-              <button
-                onClick={analyzeCv}
-                disabled={cvLoading}
-                className="mt-3 px-4 py-2 rounded-lg text-white text-sm font-semibold flex items-center gap-2"
-                style={{ backgroundColor: "#7c3aed" }}
-              >
-                {cvLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {cvLoading ? "Analyzing…" : "Analyze CV"}
-              </button>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  onClick={analyzeCv}
+                  disabled={cvLoading}
+                  className="px-4 py-2 rounded-lg text-white text-sm font-semibold flex items-center gap-2"
+                  style={{ backgroundColor: "#7c3aed" }}
+                >
+                  {cvLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {cvLoading ? "Analyzing CV…" : state.profile.cv_analyzed ? "Re-analyze CV" : "Analyze CV"}
+                </button>
+                {state.profile.cv_analyzed && (
+                  <button
+                    onClick={() => setEditProfileOpen(true)}
+                    className="px-3 py-2 text-sm border rounded-lg flex items-center gap-1.5 text-gray-700 hover:bg-gray-50"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Review & edit profile
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </section>
 
-        {/* Workbench */}
         <section className="py-8 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2">
             <ApplicationsTracker
@@ -452,51 +659,53 @@ export default function CareerBuddy() {
           </div>
         </section>
 
-        {/* Section 4 */}
         <section className="py-8">
           <h2 className="text-2xl font-semibold mb-1">Roles you might fit</h2>
           <p className="text-sm text-gray-500 mb-6">
             {rankedJobs.length === 0
               ? "Loading live openings…"
-              : `${rankedJobs.length} live openings, ranked by fit to your profile.`}
+              : `${rankedJobs.length} live openings, ranked by your profile + CV.`}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {rankedJobs.map((j) => {
-              const isTop = top3.has(j.company);
-              const why = isTop
-                ? "Matches your B2B + Series-A focus — direct overlap with target."
-                : "DACH-based VC with FA-track openings — review JD.";
+            {rankedJobs.map((j, idx) => {
+              const isTop = idx < 3 && j.fit >= 7.0 && j.fit >= topThreshold;
               return (
-                <div
+                <a
                   key={`${j.company}-${j.role}-${j.url}`}
-                  className={`relative bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition ${isTop ? "ring-2 ring-purple-500 ring-opacity-50 animate-pulse" : ""}`}
+                  href={j.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`relative block bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition no-underline ${isTop ? "ring-2 ring-purple-500/60" : ""}`}
                 >
                   <div className={`absolute top-3 right-3 text-sm font-bold ${fitColor(j.fit)}`}>{j.fit.toFixed(1)}</div>
-                  <div className="font-semibold text-base">{j.company}</div>
-                  <div className="text-sm">{j.role}</div>
+                  <div className="font-semibold text-base text-[#111827] pr-10">{j.company}</div>
+                  <div className="text-sm text-[#111827]">{j.role}</div>
                   <div className="text-xs text-gray-500">{j.location}</div>
                   <div className="mt-2 flex items-center gap-2 text-[10px]">
-                    <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 uppercase tracking-wide">
-                      {j.ats_source}
-                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 uppercase tracking-wide">{j.ats_source}</span>
+                    {j.role_category && j.role_category !== "other" && (
+                      <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">{j.role_category}</span>
+                    )}
                     <span className="text-gray-400">{relativeDays(j.posted_date)}</span>
                   </div>
-                  <div className="text-sm mt-3 italic">{why}</div>
+                  <div className="text-xs mt-3 text-gray-600">{j.why}</div>
                   <button
-                    onClick={() => addApplication(j.company, j.role)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      addApplication(j.company, j.role);
+                    }}
                     className="mt-4 text-xs px-3 py-1 border rounded-lg"
                     style={{ borderColor: "#7c3aed", color: "#7c3aed" }}
                   >
                     Add to tracker
                   </button>
-                </div>
+                </a>
               );
             })}
           </div>
         </section>
       </main>
 
-      {/* Section 5 */}
       <footer className="bg-gray-50 py-6 text-center mt-8">
         <div className="text-sm uppercase tracking-wider text-gray-500">Roadmap — for startup operators, not just VC-track</div>
         <div className="text-base text-gray-700 mt-2 max-w-3xl mx-auto px-6">
@@ -505,65 +714,121 @@ export default function CareerBuddy() {
       </footer>
 
       {showAdd && <AddAppModal onClose={() => setShowAdd(false)} onAdd={addApplication} />}
+
+      {editProfileOpen && (
+        <EditProfileModal
+          profile={state.profile}
+          onClose={() => setEditProfileOpen(false)}
+          onSave={(next) => {
+            setState((s) => ({ ...s, profile: { ...s.profile, ...next } }));
+            setEditProfileOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
 
 const CANNED_REPLY =
-  "Got it. Target: Founders Associate at AI-startups + Operating Associate / BizOps / Strategy roles at early-stage startups. Geo: Berlin / Remote-DACH. Background: CLSBE Master, business track, 0–2y experience.";
+  "Got it. Target: Founders Associate at AI-startups + Operating Associate / BizOps / Strategy roles at early-stage startups. Geo: Berlin / Remote-DACH. Background: business track, 0–2y experience. Edit your profile any time to refine the fit.";
 
-function ProfileCard({ state, setState }: { state: State; setState: React.Dispatch<React.SetStateAction<State>> }) {
-  const collapsed = state.profile.collapsed && state.sync_completed;
+function ProfileCard({
+  profile,
+  onEdit,
+  onExpand,
+  syncCompleted,
+}: {
+  profile: Profile;
+  onEdit: () => void;
+  onExpand: () => void;
+  syncCompleted: boolean;
+}) {
+  const collapsed = profile.collapsed && syncCompleted;
 
   if (collapsed) {
     return (
       <div className="mt-4 flex items-center justify-between bg-gray-50 rounded-lg p-3 text-sm">
-        <span>Troels K. · Founders Associate · Berlin / Remote-DACH · CLSBE Master</span>
-        <button
-          onClick={() => setState((s) => ({ ...s, profile: { ...s.profile, collapsed: false } }))}
-          className="text-xs underline"
-          style={{ color: "#7c3aed" }}
-        >
-          edit profile
-        </button>
+        <span>
+          {profile.name || "Profile"} · {profile.target_role} · {profile.target_geo}
+        </span>
+        <div className="flex items-center gap-3">
+          <button onClick={onEdit} className="text-xs underline" style={{ color: "#7c3aed" }}>
+            edit profile
+          </button>
+          <button onClick={onExpand} className="text-xs text-gray-400 underline">
+            expand
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="mt-4 bg-gray-50 rounded-lg p-4 text-sm space-y-1">
-      <div><span className="text-gray-500 w-28 inline-block">Name:</span> Troels K.</div>
-      <div><span className="text-gray-500 w-28 inline-block">Target Role:</span> Founders Associate / Operating Associate</div>
-      <div><span className="text-gray-500 w-28 inline-block">Target Geo:</span> DACH (Berlin / Remote)</div>
-      <div><span className="text-gray-500 w-28 inline-block">Background:</span> CLSBE Master, business track</div>
-      <div><span className="text-gray-500 w-28 inline-block">Strong:</span> B2B-sales, structured thinking</div>
-      <div><span className="text-gray-500 w-28 inline-block">Gap:</span> SaaS-metrics, ML fundamentals</div>
-      {state.profile.cv_analyzed && (
+      <div className="flex items-start justify-between mb-1">
+        <div className="space-y-1 flex-1">
+          <ProfileLine label="Name" value={profile.name || "—"} />
+          <ProfileLine label="Target Role" value={profile.target_role} />
+          <ProfileLine label="Target Geo" value={profile.target_geo} />
+          <ProfileLine label="Background" value={profile.background} />
+          <ProfileLine label="Strengths" value={profile.strengths.join(", ") || "—"} />
+          <ProfileLine label="Gaps" value={profile.gaps.join(", ") || "—"} />
+        </div>
+        <button
+          onClick={onEdit}
+          className="text-xs px-3 py-1.5 border rounded-lg flex items-center gap-1.5 text-gray-700 hover:bg-white"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+          Edit
+        </button>
+      </div>
+      {profile.cv_analyzed && (
         <div className="mt-3 pt-3 border-t">
           <div className="font-medium mb-2">
             CV analysis
-            {state.profile.cv_filename && (
-              <span className="ml-2 text-xs text-gray-500 font-normal">— {state.profile.cv_filename}</span>
-            )}
+            {profile.cv_filename && <span className="ml-2 text-xs text-gray-500 font-normal">— {profile.cv_filename}</span>}
           </div>
-          {state.profile.cv_analysis ? (
-            <div className="space-y-2 text-gray-700">
-              <div className="text-sm">{state.profile.cv_analysis.summary}</div>
+          <div className="space-y-2 text-gray-700">
+            {profile.cv_summary && <div className="text-sm">{profile.cv_summary}</div>}
+            {profile.cv_fit_score !== null && (
               <div className="text-sm">
                 <span className="font-medium">Fit score:</span>{" "}
-                <span className={fitColor(state.profile.cv_analysis.fit_score)}>
-                  {state.profile.cv_analysis.fit_score.toFixed(1)}
-                </span>
+                <span className={fitColor(profile.cv_fit_score)}>{profile.cv_fit_score.toFixed(1)}</span>
               </div>
-              <Section title="Strengths" items={state.profile.cv_analysis.strengths} />
-              <Section title="Gaps" items={state.profile.cv_analysis.gaps} />
-              <Section title="Recommendations" items={state.profile.cv_analysis.recommendations} />
-            </div>
-          ) : (
-            <div className="text-gray-700 text-sm">Strong: B2B-sales, structured thinking. Gap: SaaS-metrics, ML fundamentals.</div>
-          )}
+            )}
+            {profile.recommendations.length > 0 && (
+              <Section title="Recommendations" items={profile.recommendations} />
+            )}
+            {profile.work_history.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mt-2 mb-1">Experience</div>
+                <ul className="space-y-2 text-sm">
+                  {profile.work_history.slice(0, 4).map((p) => (
+                    <li key={p.id} className="leading-snug">
+                      <div className="font-medium">
+                        {p.role} · {p.company}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {p.start_date}
+                        {p.end_date && ` — ${p.end_date}`}
+                        {p.location && ` · ${p.location}`}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ProfileLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="text-gray-500 w-28 inline-block">{label}:</span> {value}
     </div>
   );
 }
@@ -574,7 +839,9 @@ function Section({ title, items }: { title: string; items: string[] }) {
     <div>
       <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mt-2 mb-1">{title}</div>
       <ul className="list-disc pl-5 text-sm space-y-1">
-        {items.map((it, i) => <li key={i}>{it}</li>)}
+        {items.map((it, i) => (
+          <li key={i}>{it}</li>
+        ))}
       </ul>
     </div>
   );
@@ -644,9 +911,7 @@ function ApplicationsTracker({
         </table>
       </div>
 
-      {summary && (
-        <div className="mt-4 bg-gray-50 rounded-lg px-4 py-3 text-sm">{summary}</div>
-      )}
+      {summary && <div className="mt-4 bg-gray-50 rounded-lg px-4 py-3 text-sm">{summary}</div>}
     </div>
   );
 }
@@ -688,11 +953,7 @@ function AddAppModal({ onClose, onAdd }: { onClose: () => void; onAdd: (company:
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={submit}
-        className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md"
-      >
+      <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
         <h3 className="text-lg font-semibold mb-4">Add Application</h3>
         <div className="space-y-3">
           <input className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Company" value={company} onChange={(e) => setCompany(e.target.value)} />
@@ -713,6 +974,335 @@ function AddAppModal({ onClose, onAdd }: { onClose: () => void; onAdd: (company:
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function EditProfileModal({
+  profile,
+  onClose,
+  onSave,
+}: {
+  profile: Profile;
+  onClose: () => void;
+  onSave: (next: Partial<Profile>) => void;
+}) {
+  const [name, setName] = useState(profile.name);
+  const [headline, setHeadline] = useState(profile.headline);
+  const [targetRole, setTargetRole] = useState(profile.target_role);
+  const [targetGeo, setTargetGeo] = useState(profile.target_geo);
+  const [background, setBackground] = useState(profile.background);
+  const [strengths, setStrengths] = useState<string[]>(profile.strengths);
+  const [gaps, setGaps] = useState<string[]>(profile.gaps);
+  const [recommendations, setRecommendations] = useState<string[]>(profile.recommendations);
+  const [categories, setCategories] = useState<string[]>(profile.target_role_categories);
+  const [locationPrefs, setLocationPrefs] = useState<string[]>(profile.location_preferences);
+  const [work, setWork] = useState<Position[]>(profile.work_history);
+  const [education, setEducation] = useState<Education[]>(profile.education);
+
+  function save() {
+    onSave({
+      name: name.trim(),
+      headline: headline.trim(),
+      target_role: targetRole.trim(),
+      target_geo: targetGeo.trim(),
+      background: background.trim(),
+      strengths: strengths.map((s) => s.trim()).filter(Boolean),
+      gaps: gaps.map((g) => g.trim()).filter(Boolean),
+      recommendations: recommendations.map((r) => r.trim()).filter(Boolean),
+      target_role_categories: categories,
+      location_preferences: locationPrefs.map((l) => l.trim()).filter(Boolean),
+      work_history: work
+        .map((p) => ({
+          ...p,
+          company: p.company.trim(),
+          role: p.role.trim(),
+          start_date: p.start_date.trim(),
+          end_date: p.end_date.trim(),
+          bullets: p.bullets.map((b) => b.trim()).filter(Boolean),
+        }))
+        .filter((p) => p.company || p.role),
+      education: education
+        .map((e) => ({
+          ...e,
+          institution: e.institution.trim(),
+          degree: e.degree.trim(),
+        }))
+        .filter((e) => e.institution || e.degree),
+    });
+  }
+
+  function addPosition() {
+    setWork((w) => [
+      ...w,
+      { id: `w${Date.now()}`, company: "", role: "", start_date: "", end_date: "Present", bullets: [""] },
+    ]);
+  }
+
+  function addEducation() {
+    setEducation((e) => [...e, { id: `e${Date.now()}`, institution: "", degree: "" }]);
+  }
+
+  function toggleCategory(cat: string) {
+    setCategories((c) => (c.includes(cat) ? c.filter((x) => x !== cat) : [...c, cat]));
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-xl shadow-xl w-full max-w-3xl my-8 max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between border-b px-6 py-4 sticky top-0 bg-white rounded-t-xl">
+          <h3 className="text-lg font-semibold">Edit profile</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto px-6 py-5 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Field label="Name">
+              <input className="w-full border rounded-lg px-3 py-2 text-sm" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+            </Field>
+            <Field label="Headline (one-line pitch)">
+              <input className="w-full border rounded-lg px-3 py-2 text-sm" value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="e.g. CLSBE Master · B2B-sales · operator-in-training" />
+            </Field>
+            <Field label="Target role">
+              <input className="w-full border rounded-lg px-3 py-2 text-sm" value={targetRole} onChange={(e) => setTargetRole(e.target.value)} />
+            </Field>
+            <Field label="Target geography">
+              <input className="w-full border rounded-lg px-3 py-2 text-sm" value={targetGeo} onChange={(e) => setTargetGeo(e.target.value)} />
+            </Field>
+            <Field label="Background" full>
+              <textarea rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" value={background} onChange={(e) => setBackground(e.target.value)} />
+            </Field>
+          </div>
+
+          <Field label="Target role categories (used for fit-score)">
+            <div className="flex flex-wrap gap-2">
+              {ROLE_CATEGORY_OPTIONS.map((cat) => {
+                const on = categories.includes(cat);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => toggleCategory(cat)}
+                    className={`text-xs px-2.5 py-1 rounded-full border ${on ? "bg-purple-600 border-purple-600 text-white" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+
+          <BulletEditor label="Location preferences" items={locationPrefs} onChange={setLocationPrefs} placeholder="e.g. Berlin, Remote-DACH" />
+          <BulletEditor label="Strengths" items={strengths} onChange={setStrengths} placeholder="One strength per line" />
+          <BulletEditor label="Gaps" items={gaps} onChange={setGaps} placeholder="One gap per line" />
+          <BulletEditor label="Recommendations" items={recommendations} onChange={setRecommendations} placeholder="One recommendation per line" />
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium">Work history</label>
+              <button type="button" onClick={addPosition} className="text-xs text-purple-700 flex items-center gap-1 hover:underline">
+                <Plus className="w-3.5 h-3.5" /> Add position
+              </button>
+            </div>
+            <div className="space-y-3">
+              {work.length === 0 && (
+                <div className="text-xs text-gray-400 italic">No positions yet. Upload a CV or add one manually.</div>
+              )}
+              {work.map((p, idx) => (
+                <PositionEditor
+                  key={p.id}
+                  position={p}
+                  onChange={(np) =>
+                    setWork((w) => w.map((x, i) => (i === idx ? np : x)))
+                  }
+                  onRemove={() => setWork((w) => w.filter((_, i) => i !== idx))}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium">Education</label>
+              <button type="button" onClick={addEducation} className="text-xs text-purple-700 flex items-center gap-1 hover:underline">
+                <Plus className="w-3.5 h-3.5" /> Add education
+              </button>
+            </div>
+            <div className="space-y-3">
+              {education.length === 0 && (
+                <div className="text-xs text-gray-400 italic">No education yet.</div>
+              )}
+              {education.map((e, idx) => (
+                <div key={e.id} className="border rounded-lg p-3 space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <input
+                      className="border rounded-lg px-3 py-2 text-sm"
+                      placeholder="Institution"
+                      value={e.institution}
+                      onChange={(ev) => setEducation((edu) => edu.map((x, i) => (i === idx ? { ...x, institution: ev.target.value } : x)))}
+                    />
+                    <input
+                      className="border rounded-lg px-3 py-2 text-sm"
+                      placeholder="Degree"
+                      value={e.degree}
+                      onChange={(ev) => setEducation((edu) => edu.map((x, i) => (i === idx ? { ...x, degree: ev.target.value } : x)))}
+                    />
+                    <input
+                      className="border rounded-lg px-3 py-2 text-sm"
+                      placeholder="Start (YYYY-MM)"
+                      value={e.start_date ?? ""}
+                      onChange={(ev) => setEducation((edu) => edu.map((x, i) => (i === idx ? { ...x, start_date: ev.target.value } : x)))}
+                    />
+                    <input
+                      className="border rounded-lg px-3 py-2 text-sm"
+                      placeholder="End (YYYY-MM or Present)"
+                      value={e.end_date ?? ""}
+                      onChange={(ev) => setEducation((edu) => edu.map((x, i) => (i === idx ? { ...x, end_date: ev.target.value } : x)))}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEducation((edu) => edu.filter((_, i) => i !== idx))}
+                    className="text-xs text-red-600 flex items-center gap-1 hover:underline"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t px-6 py-4 flex items-center justify-end gap-2 bg-white rounded-b-xl sticky bottom-0">
+          <button onClick={onClose} className="px-4 py-2 text-sm border rounded-lg">Cancel</button>
+          <button onClick={save} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: "#7c3aed" }}>
+            Save profile
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
+  return (
+    <div className={full ? "md:col-span-2" : ""}>
+      <label className="text-xs font-medium text-gray-600 mb-1 block">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function BulletEditor({
+  label,
+  items,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  items: string[];
+  onChange: (next: string[]) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-sm font-medium">{label}</label>
+        <button
+          type="button"
+          onClick={() => onChange([...items, ""])}
+          className="text-xs text-purple-700 flex items-center gap-1 hover:underline"
+        >
+          <Plus className="w-3.5 h-3.5" /> Add
+        </button>
+      </div>
+      <div className="space-y-2">
+        {items.length === 0 && <div className="text-xs text-gray-400 italic">No items.</div>}
+        {items.map((it, i) => (
+          <div key={i} className="flex gap-2">
+            <input
+              className="flex-1 border rounded-lg px-3 py-2 text-sm"
+              placeholder={placeholder}
+              value={it}
+              onChange={(e) => onChange(items.map((x, j) => (j === i ? e.target.value : x)))}
+            />
+            <button
+              type="button"
+              onClick={() => onChange(items.filter((_, j) => j !== i))}
+              className="px-2 text-gray-400 hover:text-red-600"
+              aria-label="Remove"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PositionEditor({
+  position,
+  onChange,
+  onRemove,
+}: {
+  position: Position;
+  onChange: (p: Position) => void;
+  onRemove: () => void;
+}) {
+  function setField<K extends keyof Position>(k: K, v: Position[K]) {
+    onChange({ ...position, [k]: v });
+  }
+  return (
+    <div className="border rounded-lg p-3 space-y-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Company" value={position.company} onChange={(e) => setField("company", e.target.value)} />
+        <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Role" value={position.role} onChange={(e) => setField("role", e.target.value)} />
+        <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Start (YYYY-MM)" value={position.start_date} onChange={(e) => setField("start_date", e.target.value)} />
+        <input className="border rounded-lg px-3 py-2 text-sm" placeholder="End (YYYY-MM or Present)" value={position.end_date} onChange={(e) => setField("end_date", e.target.value)} />
+        <input className="border rounded-lg px-3 py-2 text-sm md:col-span-2" placeholder="Location (optional)" value={position.location ?? ""} onChange={(e) => setField("location", e.target.value)} />
+      </div>
+      <div>
+        <div className="text-xs text-gray-500 mb-1">Bullets</div>
+        <div className="space-y-2">
+          {position.bullets.map((b, i) => (
+            <div key={i} className="flex gap-2">
+              <textarea
+                rows={2}
+                className="flex-1 border rounded-lg px-3 py-2 text-sm"
+                placeholder="Achievement, e.g. 'Closed 14 B2B deals worth €450k ARR'"
+                value={b}
+                onChange={(e) =>
+                  onChange({
+                    ...position,
+                    bullets: position.bullets.map((x, j) => (j === i ? e.target.value : x)),
+                  })
+                }
+              />
+              <button
+                type="button"
+                onClick={() => onChange({ ...position, bullets: position.bullets.filter((_, j) => j !== i) })}
+                className="px-2 text-gray-400 hover:text-red-600 self-start mt-1"
+                aria-label="Remove bullet"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => onChange({ ...position, bullets: [...position.bullets, ""] })}
+            className="text-xs text-purple-700 flex items-center gap-1 hover:underline"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add bullet
+          </button>
+        </div>
+      </div>
+      <button type="button" onClick={onRemove} className="text-xs text-red-600 flex items-center gap-1 hover:underline">
+        <Trash2 className="w-3.5 h-3.5" /> Remove position
+      </button>
     </div>
   );
 }
