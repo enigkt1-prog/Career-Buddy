@@ -58,13 +58,21 @@ class GeminiScraper:
         url, description, location, ...). Caller maps to CanonicalJob + upserts.
         """
         prompt = self._build_prompt(html, source_url)
+        raw = self.query(prompt)
+        return self._parse_json(raw)
 
+    def query(self, prompt: str) -> str:
+        """Run an arbitrary prompt through the tier chain and return raw text.
+
+        Use this for custom tasks (Tier-2 classification, summarisation, etc.)
+        that do not fit the careers-page extraction prompt.
+        """
         order = [self._via_cli, self._via_api] if self.prefer_cli else [self._via_api, self._via_cli]
 
         last_err: Exception | None = None
         for fn in order:
             try:
-                raw = fn(prompt)
+                return fn(prompt)
             except _QuotaSignal as e:
                 log.warning("%s quota exhausted: %s — trying next tier", fn.__name__, e)
                 last_err = e
@@ -73,12 +81,15 @@ class GeminiScraper:
                 log.info("%s unavailable: %s — trying next tier", fn.__name__, e)
                 last_err = e
                 continue
-            return self._parse_json(raw)
 
         raise QuotaExhausted(
             f"All Gemini tiers exhausted (free API + CLI). Last error: {last_err}. "
             "Stop. NEVER auto-fallback to paid API."
         )
+
+    def query_json(self, prompt: str) -> list[dict[str, Any]]:
+        """Run a prompt and parse the response as a JSON list."""
+        return self._parse_json(self.query(prompt))
 
     def _via_api(self, prompt: str) -> str:
         if not self.api_key:

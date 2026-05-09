@@ -22,6 +22,13 @@ from pydantic import ValidationError
 from rich.console import Console
 
 from .ats.ashby import AshbyAdapter
+from .ats.gemini_fallback import (
+    GeminiFallbackBudget,
+    try_gemini_extract,
+)
+from .ats.gemini_fallback import (
+    is_enabled as gemini_fallback_enabled,
+)
 from .ats.greenhouse import GreenhouseAdapter
 from .ats.lever import LeverAdapter
 from .ats.personio import PersonioAdapter
@@ -70,6 +77,10 @@ class RunStats:
     touched: list[list[str]] = field(default_factory=list)
     errors: list[ProviderError] = field(default_factory=list)
     by_provider: dict[str, dict[str, int]] = field(default_factory=dict)
+    gemini_fallback_attempted: int = 0
+    gemini_fallback_succeeded: int = 0
+    gemini_fallback_jobs: int = 0
+    gemini_fallback_skipped: int = 0
 
 
 def _load_vcs_with_careers_url() -> list[dict[str, Any]]:
@@ -127,6 +138,13 @@ async def run_scrape(
     touched: set[tuple[str, str]] = set()
     all_records: list[CanonicalJob] = []
 
+    use_gemini_fallback = gemini_fallback_enabled()
+    gemini_budget = GeminiFallbackBudget()
+    if use_gemini_fallback:
+        console.print(
+            f"[cyan]gemini fallback enabled (cap={gemini_budget.cap} VCs/run)[/cyan]"
+        )
+
     async with RateLimitedClient(
         cache_dir=artifacts_dir / "cache",
     ) as client:
@@ -136,6 +154,33 @@ async def run_scrape(
             name = str(vc["name"])
             resolved = await _resolve_provider(careers_url, client)
             if resolved is None:
+                if use_gemini_fallback:
+                    stats.gemini_fallback_attempted += 1
+                    jobs, err = await try_gemini_extract(
+                        careers_url=careers_url,
+                        company_name=name,
+                        company_domain=domain,
+                        client=client,
+                        budget=gemini_budget,
+                    )
+                    if err is None and jobs:
+                        stats.gemini_fallback_succeeded += 1
+                        stats.gemini_fallback_jobs += len(jobs)
+                        stats.vcs_matched += 1
+                        _bump_provider(stats, "gemini", "vcs")
+                        _bump_provider(stats, "gemini", "fetched", len(jobs))
+                        _bump_provider(stats, "gemini", "valid", len(jobs))
+                        all_records.extend(jobs)
+                        touched.add((domain, AtsSource.CUSTOM.value))
+                        console.print(
+                            f"[green]≈ {name:<30} gemini-fallback ok ({len(jobs)} jobs)[/green]"
+                        )
+                        continue
+                    stats.gemini_fallback_skipped += 1
+                    if err:
+                        console.print(
+                            f"[yellow]≈ {name:<30} gemini-fallback skipped: {err}[/yellow]"
+                        )
                 stats.vcs_unmatched += 1
                 unmatched.append({"domain": domain, "name": name, "careers_url": careers_url})
                 console.print(f"[dim]✗ {name:<30} unmatched[/dim]")
@@ -269,6 +314,12 @@ async def run_scrape(
             "affected_stale": stats.affected_stale,
             "touched": stats.touched,
             "by_provider": stats.by_provider,
+            "gemini_fallback": {
+                "attempted": stats.gemini_fallback_attempted,
+                "succeeded": stats.gemini_fallback_succeeded,
+                "skipped": stats.gemini_fallback_skipped,
+                "jobs": stats.gemini_fallback_jobs,
+            },
         },
         "errors": [
             {
