@@ -12,7 +12,18 @@ State: monorepo, frontend at root (TanStack Start + Vite + shadcn),
 Python backend in /backend/. 3,849 jobs live in Supabase
 gxnpfbzfqgbhnyqunuwf. 56 tests pass. Lovable abandoned.
 
+URGENT FIRST: a discover_slugs round-3 process is running in the
+background. PID 33653, started 2026-05-09 ~20:23 CEST. Wait-loop bash
+bw4ydp8q4 will notify when it exits. ENTITIES list expanded from 126 to
+206 in commit (look at commit before this message). Expected finish
+~21:40 CEST. See the "URGENT — running background process" section in
+the HANDOFF doc for the full post-completion sequence (scrape, Notion
+cleanup, classify, report).
+
 Top priority queue (in order):
+
+0. Discover_slugs round-3 finish handling (see HANDOFF doc URGENT block).
+   Then commit + push the new totals. Update HANDOFF with final numbers.
 
 1. Run `bun install && bun run build` from repo root. Verify the build
    succeeds. Tell me the build-output directory (likely .output/public).

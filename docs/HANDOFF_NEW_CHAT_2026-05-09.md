@@ -68,6 +68,73 @@ Mobile (later)   PWA first (manifest + service-worker on web app).
 - `docs/HANDOFF_GEMINI_SCRAPER_2026-05-09.md`
 - This file
 
+## URGENT — running background process when you start
+
+A `discover_slugs` round-3 expansion is running in the background with the
+ENTITIES list expanded from 126 → 206 (added ~80 high-volume operator-
+startups: Scale AI, Glean, Sierra, Harvey, Mercury, Brex, Rippling, Deel,
+Snowflake, Databricks, MongoDB, HashiCorp, Cloudflare, Aleph Alpha,
+HelloFresh, Delivery Hero, Zalando, Klarna dup, Lovable, etc.).
+
+Process PID: 33653 (parent shell + uv subprocess). Started ~20:23 CEST
+2026-05-09. Cache TTL 4 h had expired so all probes hit network. ETA:
+~80 min total = finish ~21:40 CEST.
+
+Wait-loop watching the PID: bash task bw4ydp8q4 — will notify when 33653
+exits. Output: `/tmp/discover-r3.log`.
+
+When you start the new session:
+
+1. Check process: `ps -p 33653 -o pid,etime,state`
+2. Tail log: `tail -30 /tmp/discover-r3.log`
+3. If still running, wait or `kill 33653` if user wants to abandon.
+
+When the process exits (or you kill it):
+
+```bash
+cd /Users/troelsenigk/fa-track/backend
+
+# Re-run scrape with expanded vcs base. Will fetch from any new ATS slugs
+# the discovery just pinned, plus update existing.
+uv run python -m career_buddy_scraper.cli.scrape
+
+# CRITICAL: deactivate the Notion Labs contamination AGAIN (it comes back
+# every time discovery is re-run because the slug matches `notion`).
+# Use this scoped UPDATE — it's safe per workplan whitelist.
+uv run python <<'PY'
+from career_buddy_scraper.db import connect
+with connect() as conn:
+    with conn.cursor() as cur:
+        cur.execute("""
+            update jobs set is_active = false
+             where company_domain = 'notion.vc'
+               and ats_source = 'ashby'
+               and is_active = true;
+        """)
+        n = cur.rowcount
+        cur.execute("""
+            update vcs set careers_url = 'https://notion.vc'
+             where domain = 'notion.vc';
+        """)
+    conn.commit()
+print(f"deactivated: {n}")
+PY
+
+# Then Tier-1 + Tier-2 classify (Tier-2 needs GEMINI_API_KEY in .env)
+uv run python -m career_buddy_scraper.cli.classify
+uv run python -m career_buddy_scraper.cli.classify_tier2
+
+# Generate final report
+uv run python -m career_buddy_scraper.cli.report
+```
+
+Expected outcome: from 3,849 active jobs → 4,500-6,500 active jobs after
+the round-3 expansion (the 80 new entities should add 500-2,500 jobs
+between them, with Stripe-class companies dominating).
+
+After that: commit + push the round-3 results, then update this handoff
+doc with the final totals.
+
 ## What's NOT done — next session priorities
 
 1. **Drop Lovable, deploy frontend to Cloudflare Pages.**
