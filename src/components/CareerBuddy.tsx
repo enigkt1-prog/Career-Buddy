@@ -56,10 +56,20 @@ type VcJob = {
   role: string;
   location: string;
   url: string;
-  description: string;
-  requirements: string;
-  posted_date: string;
+  ats_source: string;
+  posted_date: string | null;
 };
+
+function relativeDays(iso: string | null): string {
+  if (!iso) return "—";
+  const ms = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(ms / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "1 day ago";
+  if (days < 30) return `${days} days ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
+}
 
 type CvAnalysis = {
   strengths: string[];
@@ -162,7 +172,36 @@ export default function CareerBuddy() {
 
   useEffect(() => {
     fetch("/data/mock_emails.json").then((r) => r.json()).then(setEmails).catch(() => {});
-    fetch("/data/vc_jobs.json").then((r) => r.json()).then(setJobs).catch(() => {});
+    void (async () => {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("company_name, role_title, location, url, ats_source, posted_date")
+        .eq("is_active", true)
+        .order("posted_date", { ascending: false, nullsFirst: false })
+        .limit(30);
+      if (error) {
+        console.error("[jobs] fetch failed", error);
+        return;
+      }
+      const rows = (data ?? []) as Array<{
+        company_name: string;
+        role_title: string;
+        location: string | null;
+        url: string;
+        ats_source: string;
+        posted_date: string | null;
+      }>;
+      setJobs(
+        rows.map((r) => ({
+          company: r.company_name,
+          role: r.role_title,
+          location: r.location ?? "—",
+          url: r.url,
+          ats_source: r.ats_source,
+          posted_date: r.posted_date,
+        })),
+      );
+    })();
   }, []);
 
   function buildProfile() {
@@ -416,7 +455,11 @@ export default function CareerBuddy() {
         {/* Section 4 */}
         <section className="py-8">
           <h2 className="text-2xl font-semibold mb-1">Roles you might fit</h2>
-          <p className="text-sm text-gray-500 mb-6">15 curated DACH openings, ranked by fit to your profile.</p>
+          <p className="text-sm text-gray-500 mb-6">
+            {rankedJobs.length === 0
+              ? "Loading live openings…"
+              : `${rankedJobs.length} live openings, ranked by fit to your profile.`}
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {rankedJobs.map((j) => {
               const isTop = top3.has(j.company);
@@ -425,13 +468,19 @@ export default function CareerBuddy() {
                 : "DACH-based VC with FA-track openings — review JD.";
               return (
                 <div
-                  key={j.company}
+                  key={`${j.company}-${j.role}-${j.url}`}
                   className={`relative bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition ${isTop ? "ring-2 ring-purple-500 ring-opacity-50 animate-pulse" : ""}`}
                 >
                   <div className={`absolute top-3 right-3 text-sm font-bold ${fitColor(j.fit)}`}>{j.fit.toFixed(1)}</div>
                   <div className="font-semibold text-base">{j.company}</div>
                   <div className="text-sm">{j.role}</div>
                   <div className="text-xs text-gray-500">{j.location}</div>
+                  <div className="mt-2 flex items-center gap-2 text-[10px]">
+                    <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 uppercase tracking-wide">
+                      {j.ats_source}
+                    </span>
+                    <span className="text-gray-400">{relativeDays(j.posted_date)}</span>
+                  </div>
                   <div className="text-sm mt-3 italic">{why}</div>
                   <button
                     onClick={() => addApplication(j.company, j.role)}
