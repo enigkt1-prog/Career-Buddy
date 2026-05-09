@@ -866,6 +866,17 @@ export default function CareerBuddy() {
     setState((s) => ({ ...s, applications: [...s.applications, newApp] }));
   }
 
+  function updateApplication(id: string, patch: Partial<Application>) {
+    setState((s) => ({
+      ...s,
+      applications: s.applications.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+    }));
+  }
+
+  function deleteApplication(id: string) {
+    setState((s) => ({ ...s, applications: s.applications.filter((a) => a.id !== id) }));
+  }
+
   function syncInbox() {
     if (syncing) return;
     setSyncing(true);
@@ -1159,6 +1170,8 @@ export default function CareerBuddy() {
               onSync={syncInbox}
               syncing={syncing}
               summary={summary}
+              onUpdate={updateApplication}
+              onDelete={deleteApplication}
             />
           </div>
           <div className="md:col-span-1">
@@ -1414,18 +1427,32 @@ function Section({ title, items }: { title: string; items: string[] }) {
   );
 }
 
+const STATUS_OPTIONS: Status[] = [
+  "applied",
+  "interview-1",
+  "interview-2",
+  "follow-up-needed",
+  "offer",
+  "rejected",
+  "confirmation",
+];
+
 function ApplicationsTracker({
   applications,
   onAdd,
   onSync,
   syncing,
   summary,
+  onUpdate,
+  onDelete,
 }: {
   applications: Application[];
   onAdd: () => void;
   onSync: () => void;
   syncing: boolean;
   summary: string | null;
+  onUpdate: (id: string, patch: Partial<Application>) => void;
+  onDelete: (id: string) => void;
 }) {
   return (
     <div className="bg-white border rounded-xl shadow-sm p-5">
@@ -1455,24 +1482,12 @@ function ApplicationsTracker({
               <th className="text-left py-2 px-2">Last Event</th>
               <th className="text-left py-2 px-2">Next Action</th>
               <th className="text-left py-2 px-2">Fit</th>
+              <th className="text-left py-2 px-2"></th>
             </tr>
           </thead>
           <tbody>
             {applications.map((a) => (
-              <tr
-                key={a.id}
-                className={`border-b transition-colors ease-out ${a.flash ? "bg-purple-100" : ""}`}
-                style={{ transitionDuration: "400ms" }}
-              >
-                <td className="py-2 px-2 font-medium">{a.company}</td>
-                <td className="py-2 px-2">{a.role}</td>
-                <td className="py-2 px-2">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadge(a.status)}`}>{a.status}</span>
-                </td>
-                <td className="py-2 px-2 text-gray-600">{a.last_event}</td>
-                <td className="py-2 px-2">{a.next_action}</td>
-                <td className={`py-2 px-2 font-semibold ${fitColor(a.fit)}`}>{a.fit.toFixed(1)}</td>
-              </tr>
+              <ApplicationRow key={a.id} app={a} onUpdate={onUpdate} onDelete={onDelete} />
             ))}
           </tbody>
         </table>
@@ -1480,6 +1495,89 @@ function ApplicationsTracker({
 
       {summary && <div className="mt-4 bg-gray-50 rounded-lg px-4 py-3 text-sm">{summary}</div>}
     </div>
+  );
+}
+
+function ApplicationRow({
+  app,
+  onUpdate,
+  onDelete,
+}: {
+  app: Application;
+  onUpdate: (id: string, patch: Partial<Application>) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [editingNext, setEditingNext] = useState(false);
+  const [draftNext, setDraftNext] = useState(app.next_action);
+
+  function saveNext() {
+    setEditingNext(false);
+    if (draftNext.trim() !== app.next_action) {
+      onUpdate(app.id, { next_action: draftNext.trim() });
+    }
+  }
+
+  return (
+    <tr
+      className={`border-b transition-colors ease-out group ${app.flash ? "bg-purple-100" : ""}`}
+      style={{ transitionDuration: "400ms" }}
+    >
+      <td className="py-2 px-2 font-medium">{app.company}</td>
+      <td className="py-2 px-2">{app.role}</td>
+      <td className="py-2 px-2">
+        <select
+          value={app.status}
+          onChange={(e) => onUpdate(app.id, { status: e.target.value as Status, last_event: todayISO() })}
+          className={`text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer focus:ring-1 focus:ring-purple-400 outline-none ${statusBadge(app.status)}`}
+        >
+          {STATUS_OPTIONS.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+      </td>
+      <td className="py-2 px-2 text-gray-600">{app.last_event}</td>
+      <td className="py-2 px-2 max-w-xs">
+        {editingNext ? (
+          <input
+            autoFocus
+            value={draftNext}
+            onChange={(e) => setDraftNext(e.target.value)}
+            onBlur={saveNext}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveNext();
+              if (e.key === "Escape") {
+                setDraftNext(app.next_action);
+                setEditingNext(false);
+              }
+            }}
+            className="w-full border rounded px-2 py-1 text-sm"
+          />
+        ) : (
+          <button
+            onClick={() => {
+              setDraftNext(app.next_action);
+              setEditingNext(true);
+            }}
+            className="text-left w-full hover:bg-gray-50 px-1 py-0.5 rounded"
+            title="Click to edit"
+          >
+            {app.next_action}
+          </button>
+        )}
+      </td>
+      <td className={`py-2 px-2 font-semibold ${fitColor(app.fit)}`}>{app.fit.toFixed(1)}</td>
+      <td className="py-2 px-2">
+        <button
+          onClick={() => {
+            if (window.confirm(`Remove ${app.company} from tracker?`)) onDelete(app.id);
+          }}
+          className="text-gray-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition"
+          aria-label="Delete"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </td>
+    </tr>
   );
 }
 
