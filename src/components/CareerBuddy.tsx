@@ -1000,11 +1000,40 @@ export default function CareerBuddy() {
   function buildProfile() {
     if (!chatInput.trim()) return;
     setChatLoading(true);
+    const text = chatInput.trim();
+    // Heuristic seed: extract obvious cues from the chat input.
+    const lower = text.toLowerCase();
+    const guessGeo =
+      /berlin/i.test(text) ? "Berlin / Remote-DACH"
+      : /munich|münchen/i.test(text) ? "Munich / Remote-DACH"
+      : /london/i.test(text) ? "London / Remote-EU"
+      : /remote/i.test(text) ? "Remote"
+      : "";
+    const guessRole =
+      /founder|founder.s associate|fa\b/i.test(lower) ? "Founders Associate"
+      : /biz ?ops|operating associate/i.test(lower) ? "BizOps / Operating Associate"
+      : /chief of staff|cos\b/i.test(lower) ? "Chief of Staff"
+      : /strategy/i.test(lower) ? "Strategy Associate"
+      : /investment|venture|vc\b/i.test(lower) ? "Investment Analyst"
+      : /\bbd\b|business development|partnerships/i.test(lower) ? "Business Development"
+      : "";
     setTimeout(() => {
       setChatLoading(false);
       setChatReply(CANNED_REPLY);
-      setState((s) => ({ ...s, profile: { ...s.profile, built: true, collapsed: false } }));
-    }, 600);
+      setState((s) => ({
+        ...s,
+        profile: {
+          ...s.profile,
+          built: true,
+          collapsed: false,
+          headline: s.profile.headline || text.slice(0, 140),
+          target_role: guessRole || s.profile.target_role,
+          target_geo: guessGeo || s.profile.target_geo,
+        },
+      }));
+      // Open the editor so the user can refine immediately.
+      setEditProfileOpen(true);
+    }, 400);
   }
 
   async function handleFile(file: File) {
