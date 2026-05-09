@@ -76,7 +76,9 @@ def main() -> int:
                 counters["errored"] += 1
                 console.print(f"[red]  {job_id} extract failed: {e}[/red]")
                 continue
-            if any(v not in (None, [], "") for v in attrs.values()):
+            has_signal = any(v not in (None, [], "") for v in attrs.values())
+            # --force also clears stale values when current extraction yields none.
+            if has_signal or args.force:
                 pending.append((job_id, attrs))
                 if attrs.get("years_min") is not None:
                     by_attr["years"] += 1
@@ -84,7 +86,7 @@ def main() -> int:
                     by_attr["salary"] += 1
                 if attrs.get("languages_required"):
                     by_attr["languages"] += 1
-            else:
+            if not has_signal:
                 counters["skipped_no_signal"] += 1
 
         console.print(f"  ready: {len(pending)} updates")

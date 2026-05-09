@@ -125,12 +125,20 @@ def extract_salary(text: str) -> tuple[int | None, int | None, str | None]:
         cur = _normalise_currency(m2.group("currency"))
         v = _parse_salary_amount(m2.group("value"), text, m2.start("value"), m2.end("value"))
         if v is not None and 10_000 <= v <= 1_000_000:
-            # Be conservative: if no currency anywhere in the matched window, skip.
+            # Hard rule: require a currency to be present in the explicit match
+            # OR within 20 chars surrounding it. Otherwise the number is noise.
             window = text[max(0, m2.start() - 20) : m2.end() + 20]
-            if cur is None and not re.search(r"[\$€£]|EUR|USD|GBP|CHF", window):
+            window_cur = _normalise_currency(_first_currency(window))
+            final_cur = cur or window_cur
+            if final_cur is None:
                 return None, None, None
-            return v, None, cur
+            return v, None, final_cur
     return None, None, None
+
+
+def _first_currency(text: str) -> str | None:
+    m = re.search(r"[\$€£]|EUR|USD|GBP|CHF", text)
+    return m.group(0) if m else None
 
 
 def _parse_salary_amount(raw: str, text: str, start: int, end: int) -> int | None:
