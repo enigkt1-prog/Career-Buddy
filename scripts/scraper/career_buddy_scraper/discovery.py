@@ -20,6 +20,8 @@ ATS_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("lever", re.compile(r"jobs\.lever\.co/(?P<slug>[a-z0-9-]+)", re.I)),
     ("ashby", re.compile(r"jobs\.ashbyhq\.com/(?P<slug>[a-z0-9-]+)", re.I)),
     ("workable", re.compile(r"apply\.workable\.com/(?P<slug>[a-z0-9-]+)", re.I)),
+    ("personio", re.compile(r"(?P<slug>[a-z0-9-]+)\.jobs\.personio\.(?:de|com)", re.I)),
+    ("recruitee", re.compile(r"(?P<slug>[a-z0-9-]+)\.recruitee\.com", re.I)),
 ]
 
 

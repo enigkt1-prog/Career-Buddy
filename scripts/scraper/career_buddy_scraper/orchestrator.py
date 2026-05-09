@@ -24,6 +24,8 @@ from rich.console import Console
 from .ats.ashby import AshbyAdapter
 from .ats.greenhouse import GreenhouseAdapter
 from .ats.lever import LeverAdapter
+from .ats.personio import PersonioAdapter
+from .ats.recruitee import RecruiteeAdapter
 from .ats.workable import WorkableAdapter
 from .db import REPO_ROOT, connect
 from .discovery import discover_ats
@@ -38,6 +40,8 @@ ADAPTERS: dict[str, Any] = {
     "lever": LeverAdapter(),
     "ashby": AshbyAdapter(),
     "workable": WorkableAdapter(),
+    "personio": PersonioAdapter(),
+    "recruitee": RecruiteeAdapter(),
 }
 
 

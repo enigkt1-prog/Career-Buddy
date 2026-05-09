@@ -18,6 +18,10 @@ class AtsSource(StrEnum):
     LEVER = "lever"
     ASHBY = "ashby"
     WORKABLE = "workable"
+    PERSONIO = "personio"
+    RECRUITEE = "recruitee"
+    YC_WAAS = "yc-waas"
+    WELLFOUND = "wellfound"
     CUSTOM = "custom"
     MANUAL = "manual"
 
