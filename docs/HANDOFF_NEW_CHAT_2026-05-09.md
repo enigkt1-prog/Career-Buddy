@@ -68,26 +68,56 @@ Mobile (later)   PWA first (manifest + service-worker on web app).
 - `docs/HANDOFF_GEMINI_SCRAPER_2026-05-09.md`
 - This file
 
-## URGENT — running background process when you start
+## Round-3 results (2026-05-09 21:46 CEST) — DONE
 
-A `discover_slugs` round-3 expansion is running in the background with the
-ENTITIES list expanded from 126 → 206 (added ~80 high-volume operator-
-startups: Scale AI, Glean, Sierra, Harvey, Mercury, Brex, Rippling, Deel,
+ENTITIES expanded 126 → 206 (round 3, +80 high-volume operator-startups
+incl. Scale AI, Glean, Sierra, Harvey, Mercury, Brex, Rippling, Deel,
 Snowflake, Databricks, MongoDB, HashiCorp, Cloudflare, Aleph Alpha,
-HelloFresh, Delivery Hero, Zalando, Klarna dup, Lovable, etc.).
+HelloFresh, Lovable, Cursor, Perplexity, ElevenLabs, Suno, etc.).
 
-Process PID: 33653 (parent shell + uv subprocess). Started ~20:23 CEST
-2026-05-09. Cache TTL 4 h had expired so all probes hit network. ETA:
-~80 min total = finish ~21:40 CEST.
+**Pipeline outcome:**
 
-Wait-loop watching the PID: bash task bw4ydp8q4 — will notify when 33653
-exits. Output: `/tmp/discover-r3.log`.
+- `discover_slugs`: 104 hits / 109 misses across 213 entities. 84 new VCs
+  inserted, 125 updated. Output:
+  `artifacts/slug-discovery-20260509-182318.json`.
+- `scrape` (after one transient `DeadlockDetected` retry): matched
+  112/209 VCs, fetched 10,120 rows, valid 10,120, invalid 0. Inserted
+  6,131, updated 3,989. Active jobs **3,849 → 10,121** (delta +6,272).
+- Notion Labs ashby contamination: 141 rows deactivated again
+  (reproducible bug — slug `notion` resolves to Notion Labs SaaS, not
+  Notion Capital VC). After cleanup: **9,980 active jobs**.
+- Tier-1 regex classify: 72 newly matched. 9,578 still `tier2_pending`.
+- Tier-2 LLM classify (`gemini-2.5-flash`): hit Free Tier 20-RPD limit
+  on first batch (MiroFish runs earlier today consumed the daily quota).
+  Got through 1 batch via fallback: 4 updated, 496 classified-as-other.
+  Stopped cleanly per the no-paid-fallback rule. ~9,082 rows still
+  `tier2_pending` — re-run tomorrow when quota resets.
+- Report: `artifacts/overnight-report-20260509.md` (gitignored).
 
-When you start the new session:
+Headline numbers now in DB:
 
-1. Check process: `ps -p 33653 -o pid,etime,state`
-2. Tail log: `tail -30 /tmp/discover-r3.log`
-3. If still running, wait or `kill 33653` if user wants to abandon.
+- VCs: **209** (all with careers_url)
+- Active jobs: **9,980**
+- ATS split: greenhouse 5,705 / ashby 3,294 / lever 981
+- Top companies: Databricks 812, OpenAI 661, Sumup 496, Stripe 494,
+  MongoDB 431, Anthropic 424, Snowflake 424, Datadog 410, HelloFresh 402,
+  Binance 372.
+
+**Tier-2 outstanding:** 9,082 active rows still need LLM classification.
+Re-run `uv run python -m career_buddy_scraper.cli.classify_tier2`
+tomorrow after Free Tier quota reset (00:00 PT). With BATCH_SIZE=500 and
+20 RPD, ~18 batches required ⇒ should complete in one window if no other
+project burns the quota.
+
+**Non-blocking issues to revisit:**
+
+- `huggingface.co` workable adapter hit 429 — retry next run.
+- 11x.ai, 500.co, anduril.com, glean.com — slug pinned but ATS endpoint
+  404'd. Need slug correction or removal from ENTITIES.
+- Cherry Ventures' `talent.cherry.vc` is portfolio-company recruiting,
+  not Cherry's own roles. Schema add `posted_by_vc` planned for Phase C.
+
+## Historical: how to repeat the URGENT-block sequence
 
 When the process exits (or you kill it):
 
