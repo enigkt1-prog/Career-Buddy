@@ -1,0 +1,101 @@
+[
+  {
+    "name": "Postman",
+    "domain": "postman.com",
+    "careers_url": "https://boards.greenhouse.io/postman",
+    "geography": "San Francisco, US",
+    "stage_focus": "growth",
+    "sector_tags": ["devtools", "api"],
+    "tier": 2,
+    "sources": ["session-d-gap2-batch2"],
+    "notes": "API platform; gh-board verified 121 jobs"
+  },
+  {
+    "name": "Datadog",
+    "domain": "datadoghq.com",
+    "careers_url": "https://boards.greenhouse.io/datadog",
+    "geography": "New York, US",
+    "stage_focus": "growth",
+    "sector_tags": ["devtools", "observability"],
+    "tier": 1,
+    "sources": ["session-d-gap2-batch2"],
+    "notes": "Public-co observability; gh-board verified 410 jobs"
+  },
+  {
+    "name": "Lithic",
+    "domain": "lithic.com",
+    "careers_url": "https://boards.greenhouse.io/lithic",
+    "geography": "New York, US",
+    "stage_focus": "series-b",
+    "sector_tags": ["fintech", "card-issuing"],
+    "tier": 2,
+    "sources": ["session-d-gap2-batch2"],
+    "notes": "Card-issuing fintech; gh-board verified 14 jobs"
+  },
+  {
+    "name": "Alloy",
+    "domain": "alloy.com",
+    "careers_url": "https://boards.greenhouse.io/alloy",
+    "geography": "New York, US",
+    "stage_focus": "growth",
+    "sector_tags": ["fintech", "kyc"],
+    "tier": 2,
+    "sources": ["session-d-gap2-batch2"],
+    "notes": "Identity decisioning; gh-board verified 22 jobs"
+  },
+  {
+    "name": "Flexport",
+    "domain": "flexport.com",
+    "careers_url": "https://boards.greenhouse.io/flexport",
+    "geography": "San Francisco, US",
+    "stage_focus": "growth",
+    "sector_tags": ["logistics", "supply-chain"],
+    "tier": 1,
+    "sources": ["session-d-gap2-batch2"],
+    "notes": "Freight forwarder; gh-board verified 100 jobs"
+  },
+  {
+    "name": "Sentry",
+    "domain": "sentry.io",
+    "careers_url": "https://jobs.ashbyhq.com/sentry",
+    "geography": "San Francisco, US",
+    "stage_focus": "growth",
+    "sector_tags": ["devtools", "monitoring"],
+    "tier": 2,
+    "sources": ["session-d-gap2-batch2"],
+    "notes": "Error monitoring; ashby verified 41 jobs"
+  },
+  {
+    "name": "Render",
+    "domain": "render.com",
+    "careers_url": "https://jobs.ashbyhq.com/render",
+    "geography": "San Francisco, US",
+    "stage_focus": "series-b",
+    "sector_tags": ["devtools", "cloud"],
+    "tier": 2,
+    "sources": ["session-d-gap2-batch2"],
+    "notes": "Heroku alternative; ashby verified 19 jobs"
+  },
+  {
+    "name": "Spotify",
+    "domain": "spotify.com",
+    "careers_url": "https://jobs.lever.co/spotify",
+    "geography": "Stockholm, SE",
+    "stage_focus": "growth",
+    "sector_tags": ["consumer", "audio"],
+    "tier": 1,
+    "sources": ["session-d-gap2-batch2"],
+    "notes": "Stockholm-HQ public-co; lever verified 197 jobs (DACH/EU presence)"
+  },
+  {
+    "name": "Palantir",
+    "domain": "palantir.com",
+    "careers_url": "https://jobs.lever.co/palantir",
+    "geography": "Denver, US",
+    "stage_focus": "growth",
+    "sector_tags": ["enterprise", "data"],
+    "tier": 1,
+    "sources": ["session-d-gap2-batch2"],
+    "notes": "Public-co data platform; lever verified 226 jobs"
+  }
+]
