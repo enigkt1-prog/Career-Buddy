@@ -10,6 +10,7 @@
 |---|---|---|
 | **A — UI session** | `src/routes/*` (visual), `src/components/cinema/*`, `src/components/profile/*` (component code, not tests), `public/sw.js`, `docs/design/*`, photography | Phase 0 + 0.5 + Phase 4 (all 4 themes live with cross-device persistence via `user_tracks`) + Phase 1.5 UI stub all shipped. **IDLE pending the new CV-profile-Supabase ask + Phase 3 jobs-extraction.** |
 | **B — Backend + tooling session** | `backend/career_buddy_scraper/*`, `data/migrations/*`, `supabase/functions/*` (with announce), vitest + playwright config, `src/lib/*` extraction, RTL tests for UI-owned components | Phase 1 lib-extraction complete (12 modules + 244 frontend tests). Round-7 shipped: rich-state types + state helpers + RTL coverage for ThemePicker + EmailAccounts. **Next: CV-profile-Supabase schema + lib half (see "New ask" below).** |
+| **C — Classify + Layer-3 backfill session** (round 9, 2026-05-10 night) | `backend/career_buddy_scraper/cli/classify_subcat*.py`, `backend/career_buddy_scraper/cli/layer3_backfill*.py`, `backend/audit/classify_subcat-*.csv`, `backend/audit/layer3_backfill_*.csv` | Started. Tasks: (1) re-classify 8,999 `other`-bucket jobs into 10 new sub-cats + `other-misc` via Claude shim :5051 + Haiku-4.5; (2) Layer-3 backfill `level` (4933 NULL) → `years_min` (3218) → `city` (4302) → `visa_sponsorship` (9262) → `salary_min` (8366). Read-mostly LLM batch lane; no `src/**`, no migrations, no edge functions touched. |
 
 ## Boundary — who touches what
 
