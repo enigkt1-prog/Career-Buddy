@@ -212,6 +212,43 @@ proceeds with 7–9 immediately on top.
 
 ## Last sync
 
+- 2026-05-10 night (round 12 — B) — Two follow-up ships on top of
+  A's round-11 voice work:
+
+  1. `src/components/voice/VoiceMic.test.tsx` (commit `07d714e`) —
+     14 RTL cases covering A's `VoiceMic.tsx` Web Speech wrapper:
+     supported / unsupported / disabled state transitions, click →
+     `recognition.start` → aria-pressed flip, `onresult` →
+     `onTranscript` with trimmed value, whitespace-only suppression,
+     stop-while-listening, throws-on-start graceful state, all four
+     `onerror` branches (no-speech / not-allowed / audio-capture /
+     generic), webkit-fallback path. Mocks the Web Speech API on
+     `window`. **287 unit tests now pass** (273 → 287).
+
+  2. Vite preview pipeline unbroken (commit `f22275c`) — root-caused
+     the round-10 webServer 500s: TanStack Start's preview-server-
+     plugin imports `dist/server/<basename(entry)>.js` (here
+     `dist/server/server.js` because `vite.config.ts` pins
+     `tanstackStart.server.entry = "server"`), but the
+     cloudflare-vite-plugin emits the top-level Worker entry as
+     `dist/server/index.js`. Workaround inside the playwright
+     webServer command: `bun run build && cp dist/server/index.js
+     dist/server/server.js && bun run preview --port 4173`.
+     webServer is now active only when `PLAYWRIGHT_BASE_URL` is
+     unset (so the live-deploy / staging URL override path still
+     works). `lazy-chunks.spec.ts` switched back to relative paths;
+     baseURL drives the target. All 5 e2e tests now pass against
+     the local preview build — no live-worker dependency for the
+     bundle-shape suite. Upstream fix (reconciling the two plugins'
+     output-name expectations) tracked as a follow-up; the copy
+     workaround is good enough for CI + dev.
+
+  Both commits land as clean `test(voice): ...` and `fix(e2e): ...`
+  subjects — no bundle sweep this round (B used explicit file-path
+  `git commit <files>` instead of `git add` + `git commit` to dodge
+  the parallel-session index race that caused the three round-8-to-
+  11 incidents).
+
 - 2026-05-10 night (round 11 — A) — Phase 1 voice input shipped.
   New `src/components/voice/VoiceMic.tsx` wraps the Web Speech API
   (`window.SpeechRecognition` / `webkitSpeechRecognition`) with
