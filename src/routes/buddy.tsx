@@ -24,10 +24,10 @@ const SHIM_URL = "http://127.0.0.1:5051";
 type ChatMsg = { role: "user" | "assistant"; content: string; ts: number };
 
 const SUGGESTED = [
-  "What should I focus on this week to land a Founders Associate role in Berlin?",
+  "What should I focus on this week to land my next operator-track role?",
   "Which 3 of my live roles should I apply to first, and why?",
   "Summarise my profile gaps and what to fix in 4 weeks.",
-  "Draft a cold outreach to a Berlin VC for a Founders Associate role.",
+  "Draft a cold outreach to the hiring manager for my top-fit live role.",
 ];
 
 function loadHistory(): ChatMsg[] {
