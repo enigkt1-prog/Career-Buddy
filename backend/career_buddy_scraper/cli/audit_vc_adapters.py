@@ -258,6 +258,77 @@ def summarize(results: list[ProbeResult]) -> None:
         print(f"  {n:4d}  {prov}")
 
 
+DEFAULT_APPLY_REASONS = frozenset({"dead_url"})
+
+
+def apply_skip_probe(
+    csv_path: Path,
+    *,
+    dry_run: bool = False,
+    reasons: frozenset[str] = DEFAULT_APPLY_REASONS,
+) -> None:
+    """Read an audit CSV and apply ``skip_probe = true`` to recommended rows.
+
+    Only rows whose ``recommendation`` is ``skip_probe:<reason>`` AND whose
+    ``<reason>`` is in ``reasons`` are affected. Default ``reasons``
+    includes only ``dead_url`` — ``no_embed`` rows often contain real
+    producers behind JS-rendered SPAs (Atlassian, HubSpot, Klarna),
+    which would be lost if bulk-skipped. Each UPDATE has a per-domain
+    WHERE clause and only fires when ``skip_probe`` is currently false
+    (re-runs are idempotent).
+    """
+    import csv as _csv
+
+    from ..db import connect
+
+    targets: list[tuple[str, str, str]] = []
+    with csv_path.open() as f:
+        reader = _csv.DictReader(f)
+        for row in reader:
+            rec = row.get("recommendation", "")
+            if rec.startswith("skip_probe:"):
+                reason = rec.split(":", 1)[1]
+                if reason in reasons:
+                    targets.append((row["domain"], row.get("name", ""), reason))
+
+    print(f"Source: {csv_path}")
+    print(f"Targets: {len(targets)} VCs flagged skip_probe:<reason>")
+    by_reason: dict[str, int] = {}
+    for _, _, r in targets:
+        by_reason[r] = by_reason.get(r, 0) + 1
+    for r, n in sorted(by_reason.items(), key=lambda x: -x[1]):
+        print(f"  {n:4d}  {r}")
+
+    if dry_run:
+        print("\n--dry-run: no changes applied.")
+        return
+
+    audited = 0
+    audit_ts = dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
+    with connect() as conn, conn.cursor() as cur:
+        for domain, _name, reason in targets:
+            cur.execute(
+                """
+                UPDATE vcs
+                SET skip_probe = true,
+                    skip_reason = COALESCE(NULLIF(skip_reason, ''), '') ||
+                                  CASE WHEN COALESCE(skip_reason, '') = ''
+                                       THEN '' ELSE '; ' END ||
+                                  %s,
+                    updated_at = now()
+                WHERE domain = %s
+                  AND skip_probe = false
+                """,
+                (f"audit {audit_ts}: {reason}", domain),
+            )
+            audited += cur.rowcount
+        conn.commit()
+        cur.execute("select count(*) from vcs where skip_probe = true")
+        total_skipped = cur.fetchone()[0]
+
+    print(f"\nApplied skip_probe to {audited} VCs (total now: {total_skipped}).")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Audit zero-job VC adapters")
     parser.add_argument(
@@ -267,7 +338,38 @@ def main() -> None:
         help="Output CSV path (default: audit/vc_adapter_audit-<ts>.csv)",
     )
     parser.add_argument("--concurrency", type=int, default=8)
+    parser.add_argument(
+        "--apply-skip-probe",
+        type=Path,
+        default=None,
+        metavar="CSV",
+        help="Read CSV and apply skip_probe=true for skip_probe:* rows. Skips probing.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="With --apply-skip-probe: print what would change, don't UPDATE.",
+    )
+    parser.add_argument(
+        "--reasons",
+        type=str,
+        default=",".join(sorted(DEFAULT_APPLY_REASONS)),
+        help=(
+            "Comma-separated list of skip_probe:<reason> values to apply. "
+            "Default: dead_url. Use 'dead_url,no_embed' to also bulk-skip "
+            "no-embed rows (caution: may include JS-rendered real producers)."
+        ),
+    )
     args = parser.parse_args()
+
+    if args.apply_skip_probe is not None:
+        reasons = frozenset(s.strip() for s in args.reasons.split(",") if s.strip())
+        apply_skip_probe(
+            args.apply_skip_probe,
+            dry_run=args.dry_run,
+            reasons=reasons,
+        )
+        return
 
     if args.out is None:
         ts = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
