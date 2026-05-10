@@ -41,6 +41,31 @@ import {
   type MatchResult,
 } from "@/lib/match-cache";
 import {
+  emptyState,
+  loadState,
+  migrateProfile,
+} from "@/lib/state";
+import {
+  CANNED_REPLY,
+  DEFAULT_PROFILE,
+  DRAFT_KIND_LABEL,
+  ROLE_CATEGORY_OPTIONS,
+  SEED_APPS,
+  type Application,
+  type CvAnalysisResponse,
+  type DraftKind,
+  type DraftResult,
+  type Education,
+  type JobLevel,
+  type Position,
+  type Profile,
+  type ScoredJob,
+  type State,
+  type Status,
+  type VcJob,
+} from "@/lib/types";
+import { STORAGE_KEY } from "@/lib/cv-storage";
+import {
   DEFAULT_FILTERS,
   applyFilters,
   countActiveFilters,
@@ -52,236 +77,15 @@ import {
 } from "@/lib/job-filters";
 import { supabase } from "@/integrations/supabase/client";
 
-type Status =
-  | "applied"
-  | "interview-1"
-  | "interview-2"
-  | "rejected"
-  | "offer"
-  | "follow-up-needed"
-  | "confirmation";
-
-type Application = {
-  id: string;
-  company: string;
-  role: string;
-  status: Status;
-  last_event: string;
-  next_action: string;
-  fit: number;
-  flash?: boolean;
-  notes?: string;
-  url?: string;
-};
-
-type Position = {
-  id: string;
-  company: string;
-  role: string;
-  start_date: string;
-  end_date: string;
-  location?: string;
-  bullets: string[];
-};
-
-type Education = {
-  id: string;
-  institution: string;
-  degree: string;
-  start_date?: string;
-  end_date?: string;
-};
-
-type CvAnalysisResponse = {
-  summary?: string;
-  fit_score?: number;
-  strengths?: string[];
-  gaps?: string[];
-  recommendations?: string[];
-  target_role_categories?: string[];
-  location_preferences?: string[];
-  name?: string;
-  headline?: string;
-  work_history?: Array<Omit<Position, "id">>;
-  education?: Array<Omit<Education, "id">>;
-};
-
-type Profile = {
-  built: boolean;
-  cv_analyzed: boolean;
-  collapsed: boolean;
-  name: string;
-  target_role: string;
-  target_geo: string;
-  background: string;
-  headline: string;
-  strengths: string[];
-  gaps: string[];
-  recommendations: string[];
-  target_role_categories: string[];
-  location_preferences: string[];
-  work_history: Position[];
-  education: Education[];
-  cv_filename: string | null;
-  cv_summary: string | null;
-  cv_fit_score: number | null;
-};
-
-type State = {
-  applications: Application[];
-  profile: Profile;
-  sync_completed: boolean;
-  dismissed_urls: string[];
-};
-
-// Filters / SortKey / DEFAULT_FILTERS now live in @/lib/job-filters
-// (imported below). JobLevel type stays inline because it's referenced
-// by the rich VcJob type that has a dozen other fields.
-
-// MatchResult / MatchEntry / MatchCache moved to src/lib/match-cache.ts
-// (imported above).
-
-type DraftKind = "cover_letter" | "outreach" | "feedback_request" | "thank_you" | "follow_up";
-
-type DraftResult = {
-  subject: string;
-  body: string;
-  bullet_points_used?: string[];
-};
-
-const DRAFT_KIND_LABEL: Record<DraftKind, string> = {
-  cover_letter: "Cover letter",
-  outreach: "LinkedIn outreach",
-  feedback_request: "Ask for feedback",
-  thank_you: "Thank-you note",
-  follow_up: "Follow-up nudge",
-};
-
-type JobLevel = "intern" | "junior" | "mid" | "senior" | "lead" | "principal" | "executive";
-
-type VcJob = {
-  company: string;
-  role: string;
-  role_category: string | null;
-  location: string;
-  url: string;
-  ats_source: string;
-  posted_date: string | null;
-  is_remote: boolean;
-  description: string | null;
-  requirements: string | null;
-  years_min: number | null;
-  years_max: number | null;
-  salary_min: number | null;
-  salary_max: number | null;
-  salary_currency: string | null;
-  languages_required: string[];
-  level: JobLevel | null;
-  country: string | null;
-  city: string | null;
-  visa_sponsorship: boolean | null;
-  is_international: boolean;
-  jobTokens: Set<string>;
-  reqTokens: Set<string>;
-};
-
-type ScoredJob = VcJob & { fit: number; why: string; matched: string[] };
-
-const STORAGE_KEY = "career-buddy-state";
-
-const DEFAULT_PROFILE: Profile = {
-  built: false,
-  cv_analyzed: false,
-  collapsed: false,
-  name: "",
-  target_role: "Founders Associate / Operating Associate",
-  target_geo: "Berlin / Remote-DACH",
-  background: "Business-background grad, 0-2 years experience",
-  headline: "",
-  strengths: ["B2B-sales", "Structured thinking"],
-  gaps: ["SaaS metrics", "ML fundamentals"],
-  recommendations: [],
-  target_role_categories: ["founders-associate", "bizops", "strategy"],
-  location_preferences: ["Berlin", "Remote-DACH"],
-  work_history: [],
-  education: [],
-  cv_filename: null,
-  cv_summary: null,
-  cv_fit_score: null,
-};
-
-const ROLE_CATEGORY_OPTIONS = [
-  "founders-associate",
-  "bizops",
-  "strategy",
-  "bd",
-  "chief-of-staff",
-  "investment-analyst",
-] as const;
-
-const SEED_APPS: Application[] = [];
-
-// fit + token helpers now live in src/lib/job-fit.ts (single source of
-// truth shared with future /jobs filter UI). DACH_CITIES, STOPWORDS,
-// TOKEN_RE, tokenize, profileYearsExperience, parseYearMonth,
-// buildProfileTokens, tokensMatch, intersect — all imported below.
-
-function emptyState(): State {
-  return {
-    applications: [],
-    profile: { ...DEFAULT_PROFILE },
-    sync_completed: false,
-    dismissed_urls: [],
-  };
-}
-
-function migrateProfile(raw: unknown): Profile {
-  const base = { ...DEFAULT_PROFILE };
-  if (!raw || typeof raw !== "object") return base;
-  const r = raw as Record<string, unknown>;
-  const arr = (k: string): string[] => (Array.isArray(r[k]) ? (r[k] as string[]).filter((x) => typeof x === "string") : base[k as keyof Profile] as string[]);
-  const str = (k: string, fb: string): string => (typeof r[k] === "string" ? (r[k] as string) : fb);
-  const num = (k: string): number | null => (typeof r[k] === "number" ? (r[k] as number) : null);
-  return {
-    built: r.built === true,
-    cv_analyzed: r.cv_analyzed === true,
-    collapsed: r.collapsed === true,
-    name: str("name", ""),
-    target_role: str("target_role", base.target_role),
-    target_geo: str("target_geo", base.target_geo),
-    background: str("background", base.background),
-    headline: str("headline", ""),
-    strengths: arr("strengths"),
-    gaps: arr("gaps"),
-    recommendations: arr("recommendations"),
-    target_role_categories: arr("target_role_categories"),
-    location_preferences: arr("location_preferences"),
-    work_history: Array.isArray(r.work_history) ? (r.work_history as Position[]).map((p, i) => ({ ...p, id: p.id || `w${i}_${Date.now()}` })) : [],
-    education: Array.isArray(r.education) ? (r.education as Education[]).map((e, i) => ({ ...e, id: e.id || `e${i}_${Date.now()}` })) : [],
-    cv_filename: typeof r.cv_filename === "string" ? r.cv_filename : null,
-    cv_summary: typeof r.cv_summary === "string" ? r.cv_summary : null,
-    cv_fit_score: num("cv_fit_score"),
-  };
-}
-
-function loadState(): State {
-  if (typeof window === "undefined") return emptyState();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return emptyState();
-    const parsed = JSON.parse(raw) as { applications?: Application[]; profile?: unknown; sync_completed?: boolean };
-    return {
-      applications: Array.isArray(parsed.applications) && parsed.applications.length > 0 ? parsed.applications : SEED_APPS,
-      profile: migrateProfile(parsed.profile),
-      sync_completed: parsed.sync_completed === true,
-      dismissed_urls: Array.isArray((parsed as { dismissed_urls?: unknown }).dismissed_urls)
-        ? ((parsed as { dismissed_urls: unknown[] }).dismissed_urls.filter((x) => typeof x === "string") as string[])
-        : [],
-    };
-  } catch {
-    return emptyState();
-  }
-}
+// All rich-state types (Status / Application / Position / Education /
+// CvAnalysisResponse / Profile / State / DraftKind / DraftResult /
+// JobLevel / VcJob / ScoredJob) + constants (DEFAULT_PROFILE /
+// ROLE_CATEGORY_OPTIONS / SEED_APPS / DRAFT_KIND_LABEL / CANNED_REPLY)
+// moved to src/lib/types.ts.
+// State helpers (emptyState / loadState / migrateProfile) moved to
+// src/lib/state.ts.
+// STORAGE_KEY moved to src/lib/cv-storage.ts.
+// All imported above.
 
 // statusBadge / fitColor / todayISO / formatSalary / relativeDays
 // moved to src/lib/format.ts (imported above).
@@ -1169,8 +973,7 @@ export default function CareerBuddy({ rolesOnly = false }: CareerBuddyProps = {}
   );
 }
 
-const CANNED_REPLY =
-  "Got it. Target: Founders Associate at AI-startups + Operating Associate / BizOps / Strategy roles at early-stage startups. Geo: Berlin / Remote-DACH. Background: business track, 0–2y experience. Edit your profile any time to refine the fit.";
+// CANNED_REPLY moved to src/lib/types.ts (imported above).
 
 function ProfileCard({
   profile,
