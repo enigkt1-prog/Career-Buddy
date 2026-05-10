@@ -4,7 +4,16 @@ import { Loader2, Send, Sparkles } from "lucide-react";
 
 import { GlassCard } from "@/components/cinema";
 import { VoiceMic } from "@/components/voice/VoiceMic";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  loadHistory,
+  probeShim,
+  QUOTA_COOLDOWN_MS,
+  readQuota,
+  saveHistory,
+  sendBuddyMessage,
+  writeQuota,
+  type ChatMsg,
+} from "@/components/buddy/chat-helpers";
 
 export const Route = createFileRoute("/buddy")({
   component: ChatPage,
@@ -16,88 +25,12 @@ export const Route = createFileRoute("/buddy")({
   }),
 });
 
-const STORAGE_KEY = "career-buddy-state";
-const CHAT_KEY = "career-buddy-chat-v1";
-const QUOTA_KEY = "career-buddy-chat-quota-v1";
-const QUOTA_COOLDOWN_MS = 4 * 3600 * 1000;
-const SHIM_URL = "http://127.0.0.1:5051";
-
-type ChatMsg = { role: "user" | "assistant"; content: string; ts: number };
-
 const SUGGESTED = [
   "What should I focus on this week to land my next operator-track role?",
   "Which 3 of my live roles should I apply to first, and why?",
   "Summarise my profile gaps and what to fix in 4 weeks.",
   "Draft a cold outreach to the hiring manager for my top-fit live role.",
 ];
-
-function loadHistory(): ChatMsg[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(CHAT_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as ChatMsg[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveHistory(msgs: ChatMsg[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(CHAT_KEY, JSON.stringify(msgs.slice(-50)));
-  } catch {}
-}
-
-function readQuota(): number | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(QUOTA_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { quotaHitAt?: number };
-    if (!parsed?.quotaHitAt) return null;
-    if (Date.now() - parsed.quotaHitAt > QUOTA_COOLDOWN_MS) return null;
-    return parsed.quotaHitAt;
-  } catch {
-    return null;
-  }
-}
-
-function writeQuota(quotaHitAt: number) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(QUOTA_KEY, JSON.stringify({ quotaHitAt }));
-  } catch {}
-}
-
-function loadProfileAndApps(): { profile: unknown; applications: unknown[] } {
-  if (typeof window === "undefined") return { profile: undefined, applications: [] };
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { profile: undefined, applications: [] };
-    const parsed = JSON.parse(raw) as { profile?: unknown; applications?: unknown[] };
-    return {
-      profile: parsed?.profile,
-      applications: Array.isArray(parsed?.applications) ? parsed.applications : [],
-    };
-  } catch {
-    return { profile: undefined, applications: [] };
-  }
-}
-
-async function probeShim(): Promise<boolean> {
-  if (typeof window === "undefined") return false;
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 1500);
-    const r = await fetch(`${SHIM_URL}/health`, { signal: ctrl.signal });
-    clearTimeout(t);
-    return r.ok;
-  } catch {
-    return false;
-  }
-}
 
 function ChatPage() {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -146,54 +79,13 @@ function ChatPage() {
     setMessages(next);
     setInput("");
     setLoading(true);
-    try {
-      const { profile, applications } = loadProfileAndApps();
-      const apiMessages = next.map((m) => ({ role: m.role, content: m.content }));
-      // Path 1: prefer the local Claude CLI shim (Max-sub OAuth, no API key).
-      if (shimOnline) {
-        try {
-          const r = await fetch(`${SHIM_URL}/chat`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ messages: apiMessages, profile, applications }),
-          });
-          if (r.ok) {
-            const payload = (await r.json()) as { reply?: string };
-            if (payload?.reply) {
-              setMessages((m) => [
-                ...m,
-                { role: "assistant", content: payload.reply!, ts: Date.now() },
-              ]);
-              return;
-            }
-          }
-          // shim returned non-2xx → fall through to Gemini
-        } catch {
-          // shim offline mid-call → fall through
-        }
-      }
-      // Path 2: Gemini via Supabase edge function.
-      const { data, error: fnErr } = await supabase.functions.invoke("chat", {
-        body: { messages: apiMessages, profile, applications },
-      });
-      if (fnErr) {
-        const status = (fnErr as { context?: { status?: number } })?.context?.status;
-        if (status === 429) tripQuota();
-        throw fnErr;
-      }
-      const payload = data as { reply?: string; error?: string };
-      if (!payload?.reply) {
-        const errMsg = payload?.error || "No reply";
-        if (/quota/i.test(errMsg)) tripQuota();
-        throw new Error(errMsg);
-      }
-      setMessages((m) => [...m, { role: "assistant", content: payload.reply!, ts: Date.now() }]);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Chat failed";
-      if (/(?:^|\s)429(?:\s|$)|quota/i.test(msg)) tripQuota();
-      setError(msg);
-    } finally {
-      setLoading(false);
+    const result = await sendBuddyMessage({ messages: next, shimOnline });
+    setLoading(false);
+    if (result.ok) {
+      setMessages((m) => [...m, { role: "assistant", content: result.reply, ts: Date.now() }]);
+    } else {
+      if (result.quotaHit) tripQuota();
+      setError(result.error);
     }
   }
 
