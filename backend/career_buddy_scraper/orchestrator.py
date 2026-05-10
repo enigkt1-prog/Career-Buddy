@@ -90,6 +90,7 @@ def _load_vcs_with_careers_url() -> list[dict[str, Any]]:
             select domain, name, careers_url
             from vcs
             where careers_url is not null and careers_url <> ''
+              and skip_probe = false
             order by domain;
             """
         )
