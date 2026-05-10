@@ -131,14 +131,18 @@ proceeds with 7–9 immediately on top.
       `CvUploadInline` now persists via `setProfileFromAnalysis`,
       `/profile` Section 03 renders live skills chips,
       `initProfileFromSupabase` runs on mount, smoke verified)
-- [ ] Phase 3 deep — `/jobs` standalone (rebuild as `<RoleGrid />` +
-      `<FilterBar />` importing `lib/*` directly, no
-      `<CareerBuddy rolesOnly />` mount). Unblocked since B shipped
-      rich-state types lift in `6982329`.
-- [ ] 8 monolith child components extraction (JobCard / FilterBar /
-      DraftModal / ApplicationsTracker / ApplicationRow / AddAppModal /
-      ProfileCard / EditProfileModal / InsightsPanel) — UI session
-      decides when to start; B follows with RTL tests per pattern.
+- [x] Phase 3 deep — `/jobs` standalone (round 12, `51f9e1d`).
+      `JobsFeed` fetches + filters + sorts jobs directly, no
+      `<CareerBuddy rolesOnly />` mount. Browse + filter + sort lives
+      on /jobs; AI fit + tracker stay on Overview with a nudge link.
+- [ ] Monolith child components extraction (progress: 2/9 done).
+      Done: JobCard + FilterBar → `src/components/jobs/*` (round 12,
+      `7eef6d0` — Overview now imports the extracted versions; monolith
+      down 2,449 → 1,988 lines).
+      Remaining: DraftModal / ApplicationsTracker / ApplicationRow /
+      AddAppModal / ProfileCard / EditProfileModal / InsightsPanel —
+      UI session decides when to start; B follows with RTL tests per
+      pattern.
 - [x] Voice input (Web Speech API) — Phase 1 (round 10/11 —
       `2adfd52` bundled the diff under a misleading
       "round-10 complete" coord subject; voice work is shipped:
@@ -147,8 +151,13 @@ proceeds with 7–9 immediately on top.
       paste textarea, `voice-mic-pulse` reduced-motion-safe
       animation in `cinema.css`, graceful fallback when
       `window.SpeechRecognition` is missing)
-- [ ] Floating Buddy widget (bottom-right bubble + side panel) —
-      Phase 2
+- [x] Floating Buddy widget (Phase 2, round 12, `fec6c67`).
+      `src/components/buddy/FloatingBuddy.tsx` mounts the bubble
+      bottom-right on every route except /buddy itself; slide-out
+      panel shows 4 starter prompts that route to /buddy?prefill=…
+      with the composer seeded. Escape + overlay close. Reduced-motion
+      respected. Phase 6 will replace the launcher panel with an
+      inline mini-chat.
 - [ ] Skills probe + voice everywhere — Phase 6
 - [ ] Photo licensing audit (Unsplash Free → Unsplash+ or AI-generated
       production set)
@@ -211,6 +220,29 @@ proceeds with 7–9 immediately on top.
   `6982329` (now in `src/lib/types.ts` + `src/lib/state.ts`).
 
 ## Last sync
+
+- 2026-05-10 night (round 12 — A) — three big A pushes back-to-back:
+  - `51f9e1d` feat(jobs): Phase 3 — standalone /jobs feed. New
+    `src/components/jobs/{JobCard,FilterBar,JobsFeed}.tsx`. /jobs no
+    longer mounts `<CareerBuddy rolesOnly />` — fetches + filters +
+    sorts independently; AI fit + tracker stay on Overview with a
+    nudge link back to /. Drops the placeholder coupling for good.
+  - `fec6c67` feat(buddy): Phase 2 — floating Buddy widget. New
+    `src/components/buddy/FloatingBuddy.tsx` mounts a 56×56 bubble
+    on every route except /buddy itself; slide-out panel shows 4
+    starter prompts that route to /buddy?prefill=…. Escape +
+    overlay close. ChatPage reads ?prefill= on mount + seeds the
+    composer. Reduced-motion respected via cinema.css override.
+  - `7eef6d0` refactor(monolith): replace inline JobCard + FilterBar
+    with extracted imports. CareerBuddy.tsx now imports both from
+    `src/components/jobs/` instead of redefining them. Overview +
+    /jobs share one source of truth. Monolith shrinks 2,449 →
+    1,988 lines (-461, ~19%).
+  Tests now 303 passing. tsc clean. Build green. Live HTTP/2 200.
+  Open A items left: 7 of 9 monolith extractions (DraftModal /
+  ApplicationsTracker / ApplicationRow / AddAppModal / ProfileCard /
+  EditProfileModal / InsightsPanel) + photo licensing audit (user Q)
+  + Phase 6 wire (skills probe + inline chat in floating panel).
 
 - 2026-05-10 night (round 12 — B) — Two follow-up ships on top of
   A's round-11 voice work:
