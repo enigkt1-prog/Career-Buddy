@@ -58,8 +58,10 @@ const PHOTOS: Record<ThemeName, Record<PhotoSurface, string>> = {
   },
   coral: {
     // Warm designer studios / brand agency / golden-hour interiors.
-    overview: "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=2400&q=80",
-    profile:  "https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=2400&q=80",
+    // overview: brick + warm-wood creative studio (distinct from sage overview).
+    // profile: wood boardroom + warm dusk cityscape (replaces 1518709268805 — 404).
+    overview: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=2400&q=80",
+    profile:  "https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=2400&q=80",
     jobs:     "https://images.unsplash.com/photo-1486718448742-163732cd1544?auto=format&fit=crop&w=2400&q=80",
     footer:   "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=2400&q=80",
   },
