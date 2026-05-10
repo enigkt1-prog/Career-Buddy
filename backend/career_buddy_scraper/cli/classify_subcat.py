@@ -50,6 +50,18 @@ from ..claude_cli import (
 )
 from ..db import connect, load_env
 
+
+class _ClaudeCliBare(ClaudeCli):
+    """Subprocess wrapper that strips Claude Code's dynamic system-prompt
+    sections (cwd, env info, memory, git status, CLAUDE.md auto-discovery).
+    Without this flag the host shell's accumulated context can push the
+    request past the OAuth per-call ceiling and surface as "Prompt is too
+    long". OAuth + Max-20x sub remain in effect.
+    """
+
+    def _argv(self) -> list[str]:
+        return super()._argv() + ["--exclude-dynamic-system-prompt-sections"]
+
 load_env()
 log = logging.getLogger(__name__)
 console = Console()
@@ -318,7 +330,7 @@ def main() -> int:
         console.print("[green]nothing to re-classify[/green]")
         return 0
 
-    cli = ClaudeCli(model=args.model, inter_call_sleep=args.inter_call_sleep)
+    cli = _ClaudeCliBare(model=args.model, inter_call_sleep=args.inter_call_sleep)
 
     run_id = str(uuid.uuid4())
     audit_dir = Path(args.audit_dir)
