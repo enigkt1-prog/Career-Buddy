@@ -150,7 +150,9 @@ proceeds with 7–9 immediately on top.
 - [x] Migration 0010 user_email_accounts (live)
 - [x] Migration 0011 user_tracks (live)
 - [x] RTL coverage for CvUploadInline, ThemePicker, EmailAccounts
-- [ ] **CV-profile new ask tasks 1–6** (highest priority, A waits)
+- [x] **CV-profile new ask tasks 1–6** (round 8 — schema 0012 live,
+      analyze-cv extended, types augmented, lib + dual-write +
+      mocked-Supabase tests shipped — A unblocked for 7-9)
 - [ ] Pre-existing CareerBuddy.tsx Supabase upsert TS error fix
       (surgical narrow of `applicationToRow` return type — was
       :1170, now :501 after lifts; out-of-scope unless explicitly
@@ -196,6 +198,25 @@ proceeds with 7–9 immediately on top.
   `6982329` (now in `src/lib/types.ts` + `src/lib/state.ts`).
 
 ## Last sync
+
+- 2026-05-10 late evening (round 8) — B shipped tasks 1–6 of the
+  CV-profile-Supabase ask. **A unblocked for tasks 7–9.** Commits:
+  - `b6e6016` feat(db): 0012 user_profile (schema + GIN index + applied)
+  - `6254655` feat(analyze-cv): first-class skills extraction + sanitizer
+  - `6b1a2b3` feat(types): manual user_profile augmentation
+  - `053a511` feat(lib): SkillEntry on Profile + analysis merge (+5 tests)
+  - `4e68f09` feat(profile-store): Supabase dual-write helpers (+11 tests)
+  Frontend tests now 260 (244 → 260). Backend 258 unchanged. Build +
+  tsc green except the long-tracked CareerBuddy.tsx:501 upsert error.
+
+  **Public surface for A's wire:** import from `@/lib/profile-store`:
+  - `setProfileFromAnalysis(analysis, filename): Promise<void>`
+  - `initProfileFromSupabase(): Promise<void>`
+  - `fetchPersistedProfile()` (read-only helper)
+  Replace `mergeAnalysisIntoState` + `saveCareerBuddyState` calls in
+  `CvUploadInline.tsx` with `await setProfileFromAnalysis(analysis,
+  filename)`. Call `initProfileFromSupabase()` on the profile route's
+  mount (or app root) once.
 
 - 2026-05-10 evening (round 7) — B finished rich-state types lift +
   RTL tests for ThemePicker + EmailAccounts. A finished Phase 4 step
