@@ -2,23 +2,13 @@ import { useRef, useState } from "react";
 import { Loader2, Upload } from "lucide-react";
 
 import { extractCvText } from "@/lib/cv-parser";
+import {
+  loadCareerBuddyState,
+  mergeAnalysisIntoState,
+  saveCareerBuddyState,
+  type CvAnalysisResponse,
+} from "@/lib/cv-storage";
 import { supabase } from "@/integrations/supabase/client";
-
-const STORAGE_KEY = "career-buddy-state";
-
-type CvAnalysisResponse = {
-  summary?: string;
-  fit_score?: number;
-  strengths?: string[];
-  gaps?: string[];
-  recommendations?: string[];
-  target_role_categories?: string[];
-  location_preferences?: string[];
-  name?: string;
-  headline?: string;
-  work_history?: unknown[];
-  education?: unknown[];
-};
 
 /**
  * Inline CV upload card. Phase 0.5 — replaces the previous "Upload on
@@ -79,7 +69,12 @@ export function CvUploadInline() {
       if (!payload.analysis) {
         throw new Error(payload.error ?? "analyze-cv returned no analysis");
       }
-      mergeIntoLocalState(payload.analysis, filename ?? "cv.txt");
+      const merged = mergeAnalysisIntoState(
+        loadCareerBuddyState(),
+        payload.analysis,
+        filename ?? "cv.txt",
+      );
+      saveCareerBuddyState(merged);
       setSummary(payload.analysis.summary ?? "Analysis complete. Open Overview to review.");
       setPhase("done");
     } catch (e) {
@@ -161,48 +156,3 @@ export function CvUploadInline() {
   );
 }
 
-function mergeIntoLocalState(analysis: CvAnalysisResponse, cvFilename: string) {
-  if (typeof window === "undefined") return;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
-    const profile = (parsed.profile ?? {}) as Record<string, unknown>;
-    const merged = {
-      ...parsed,
-      profile: {
-        ...profile,
-        built: true,
-        cv_analyzed: true,
-        cv_filename: cvFilename,
-        cv_summary: analysis.summary ?? null,
-        cv_fit_score:
-          typeof analysis.fit_score === "number" ? analysis.fit_score : null,
-        name: analysis.name?.trim() || (profile as { name?: string }).name || "",
-        headline:
-          analysis.headline?.trim() ||
-          (profile as { headline?: string }).headline ||
-          "",
-        strengths: analysis.strengths?.length
-          ? analysis.strengths
-          : (profile as { strengths?: string[] }).strengths ?? [],
-        gaps: analysis.gaps?.length
-          ? analysis.gaps
-          : (profile as { gaps?: string[] }).gaps ?? [],
-        recommendations: analysis.recommendations?.length
-          ? analysis.recommendations
-          : (profile as { recommendations?: string[] }).recommendations ?? [],
-        target_role_categories: analysis.target_role_categories?.length
-          ? analysis.target_role_categories
-          : (profile as { target_role_categories?: string[] })
-              .target_role_categories ?? [],
-        location_preferences: analysis.location_preferences?.length
-          ? analysis.location_preferences
-          : (profile as { location_preferences?: string[] })
-              .location_preferences ?? [],
-      },
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-  } catch {
-    /* ignore — Overview will rebuild from defaults */
-  }
-}
