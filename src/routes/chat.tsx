@@ -17,6 +17,7 @@ const STORAGE_KEY = "career-buddy-state";
 const CHAT_KEY = "career-buddy-chat-v1";
 const QUOTA_KEY = "career-buddy-chat-quota-v1";
 const QUOTA_COOLDOWN_MS = 4 * 3600 * 1000;
+const SHIM_URL = "http://127.0.0.1:5051";
 
 type ChatMsg = { role: "user" | "assistant"; content: string; ts: number };
 
@@ -82,17 +83,37 @@ function loadProfileAndApps(): { profile: unknown; applications: unknown[] } {
   }
 }
 
+async function probeShim(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 1500);
+    const r = await fetch(`${SHIM_URL}/health`, { signal: ctrl.signal });
+    clearTimeout(t);
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
 function ChatPage() {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quotaHitAt, setQuotaHitAt] = useState<number | null>(null);
+  const [shimOnline, setShimOnline] = useState(false);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setMessages(loadHistory());
     setQuotaHitAt(readQuota());
+    void probeShim().then(setShimOnline);
+    // Re-probe every 30s so toggling the shim on/off is reflected.
+    const id = window.setInterval(() => {
+      void probeShim().then(setShimOnline);
+    }, 30_000);
+    return () => window.clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -118,6 +139,30 @@ function ChatPage() {
     try {
       const { profile, applications } = loadProfileAndApps();
       const apiMessages = next.map((m) => ({ role: m.role, content: m.content }));
+      // Path 1: prefer the local Claude CLI shim (Max-sub OAuth, no API key).
+      if (shimOnline) {
+        try {
+          const r = await fetch(`${SHIM_URL}/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: apiMessages, profile, applications }),
+          });
+          if (r.ok) {
+            const payload = (await r.json()) as { reply?: string };
+            if (payload?.reply) {
+              setMessages((m) => [
+                ...m,
+                { role: "assistant", content: payload.reply!, ts: Date.now() },
+              ]);
+              return;
+            }
+          }
+          // shim returned non-2xx → fall through to Gemini
+        } catch {
+          // shim offline mid-call → fall through
+        }
+      }
+      // Path 2: Gemini via Supabase edge function.
       const { data, error: fnErr } = await supabase.functions.invoke("chat", {
         body: { messages: apiMessages, profile, applications },
       });
@@ -161,7 +206,12 @@ function ChatPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Career-Buddy chat</h1>
           <p className="text-sm text-gray-500">
-            Asks your profile, applications, and live job feed. Powered by Gemini 2.5-flash.
+            Asks your profile, applications, and live job feed.{" "}
+            {shimOnline ? (
+              <span className="text-purple-700">Powered by local Claude (Max sub).</span>
+            ) : (
+              <span>Powered by Gemini 2.5-flash. Run <code className="text-[11px] bg-gray-100 px-1 rounded">python3 scripts/claude_cli_shim.py</code> for Claude.</span>
+            )}
           </p>
         </div>
         {messages.length > 0 && (

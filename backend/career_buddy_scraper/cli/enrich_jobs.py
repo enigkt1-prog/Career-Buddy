@@ -22,7 +22,7 @@ from typing import Any
 from rich.console import Console
 
 from ..db import connect, load_env
-from ..jd_attrs import extract_all
+from ..jd_attrs import extract_all, extract_more
 
 load_env()
 
@@ -32,15 +32,17 @@ BATCH_SIZE = 200
 
 
 def _select_sql(force: bool, limit: int | None) -> tuple[str, list[Any]]:
-    where = ["is_active = true", "description is not null"]
+    where = ["is_active = true"]
     params: list[Any] = []
     if not force:
         where.append(
             "(years_min is null and salary_min is null "
-            "and (languages_required = '{}' or languages_required is null))"
+            "and (languages_required = '{}' or languages_required is null) "
+            "and level is null and country is null)"
         )
     sql = (
-        "select id::text, description, requirements from jobs where "
+        "select id::text, role_title, location, description, requirements "
+        "from jobs where "
         + " and ".join(where)
         + " order by id"
     )
@@ -68,15 +70,17 @@ def main() -> int:
             rows = cur.fetchall()
 
         console.print(f"[bold]enrich jobs[/bold]: {len(rows)} candidates")
-        for job_id, description, requirements in rows:
+        for job_id, role_title, location, description, requirements in rows:
             counters["total_seen"] += 1
             try:
                 attrs = extract_all(description or "", requirements or "")
+                more = extract_more(role_title or "", location, description or "", requirements or "")
+                attrs.update(more)
             except Exception as e:
                 counters["errored"] += 1
                 console.print(f"[red]  {job_id} extract failed: {e}[/red]")
                 continue
-            has_signal = any(v not in (None, [], "") for v in attrs.values())
+            has_signal = any(v not in (None, [], "", False) for v in attrs.values())
             # --force also clears stale values when current extraction yields none.
             if has_signal or args.force:
                 pending.append((job_id, attrs))
@@ -86,6 +90,14 @@ def main() -> int:
                     by_attr["salary"] += 1
                 if attrs.get("languages_required"):
                     by_attr["languages"] += 1
+                if attrs.get("level") is not None:
+                    by_attr["level"] += 1
+                if attrs.get("country") is not None:
+                    by_attr["country"] += 1
+                if attrs.get("visa_sponsorship") is not None:
+                    by_attr["visa"] += 1
+                if attrs.get("is_international"):
+                    by_attr["international"] += 1
             if not has_signal:
                 counters["skipped_no_signal"] += 1
 
@@ -103,6 +115,10 @@ def main() -> int:
                         a["years_min"], a["years_max"],
                         a["salary_min"], a["salary_max"], a["salary_currency"],
                         a["languages_required"],
+                        a.get("level"),
+                        a.get("country"), a.get("city"),
+                        a.get("visa_sponsorship"),
+                        a.get("is_international", False),
                         jid,
                     )
                     for jid, a in chunk
@@ -112,7 +128,11 @@ def main() -> int:
                     update jobs
                        set years_min = %s, years_max = %s,
                            salary_min = %s, salary_max = %s, salary_currency = %s,
-                           languages_required = coalesce(%s, languages_required)
+                           languages_required = coalesce(%s, languages_required),
+                           level = %s::job_level,
+                           country = %s, city = %s,
+                           visa_sponsorship = %s,
+                           is_international = %s
                      where id = %s
                     """,
                     payload,
@@ -132,8 +152,8 @@ def _print_summary(counters: dict[str, int], by_attr: dict[str, int]) -> None:
         console.print(f"  {k:30} {counters.get(k, 0):>6}")
     console.print()
     console.print("[bold]by attribute[/bold]")
-    for k in ("years", "salary", "languages"):
-        console.print(f"  {k:12} {by_attr.get(k, 0):>6}")
+    for k in ("years", "salary", "languages", "level", "country", "visa", "international"):
+        console.print(f"  {k:14} {by_attr.get(k, 0):>6}")
 
 
 if __name__ == "__main__":

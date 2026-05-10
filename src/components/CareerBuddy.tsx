@@ -97,6 +97,10 @@ type Filters = {
   languages: string[];
   maxYearsRequired: number | null;
   sort: SortKey;
+  levels: JobLevel[];
+  countries: string[];
+  visaSponsorshipOnly: boolean;
+  internationalOnly: boolean;
 };
 
 const DEFAULT_FILTERS: Filters = {
@@ -109,6 +113,10 @@ const DEFAULT_FILTERS: Filters = {
   languages: [],
   maxYearsRequired: null,
   sort: "fit",
+  levels: [],
+  countries: [],
+  visaSponsorshipOnly: false,
+  internationalOnly: false,
 };
 
 type MatchResult = {
@@ -144,6 +152,8 @@ const DRAFT_KIND_LABEL: Record<DraftKind, string> = {
   follow_up: "Follow-up nudge",
 };
 
+type JobLevel = "intern" | "junior" | "mid" | "senior" | "lead" | "principal" | "executive";
+
 type VcJob = {
   company: string;
   role: string;
@@ -161,6 +171,11 @@ type VcJob = {
   salary_max: number | null;
   salary_currency: string | null;
   languages_required: string[];
+  level: JobLevel | null;
+  country: string | null;
+  city: string | null;
+  visa_sponsorship: boolean | null;
+  is_international: boolean;
   jobTokens: Set<string>;
   reqTokens: Set<string>;
 };
@@ -512,6 +527,10 @@ function serializeFilters(f: Filters): string {
   if (f.languages.length) params.set("langs", f.languages.join(","));
   if (f.maxYearsRequired !== null) params.set("max_years", String(f.maxYearsRequired));
   if (f.sort !== "fit") params.set("sort", f.sort);
+  if (f.levels.length) params.set("levels", f.levels.join(","));
+  if (f.countries.length) params.set("countries", f.countries.join(","));
+  if (f.visaSponsorshipOnly) params.set("visa", "1");
+  if (f.internationalOnly) params.set("international", "1");
   return params.toString();
 }
 
@@ -538,6 +557,15 @@ function parseFiltersFromHash(hash: string): Filters {
   if (sort === "recency" || sort === "company" || sort === "years_asc" || sort === "salary_desc") {
     out.sort = sort;
   }
+  const levels = params.get("levels");
+  if (levels) {
+    const valid: JobLevel[] = ["intern", "junior", "mid", "senior", "lead", "principal", "executive"];
+    out.levels = levels.split(",").filter((x): x is JobLevel => (valid as string[]).includes(x));
+  }
+  const countries = params.get("countries");
+  if (countries) out.countries = countries.split(",").filter(Boolean);
+  if (params.get("visa") === "1") out.visaSponsorshipOnly = true;
+  if (params.get("international") === "1") out.internationalOnly = true;
   return out;
 }
 
@@ -583,6 +611,10 @@ function countActiveFilters(f: Filters): number {
   if (f.hideRemote) n++;
   if (f.languages.length > 0) n++;
   if (f.maxYearsRequired !== null) n++;
+  if (f.levels.length > 0) n++;
+  if (f.countries.length > 0) n++;
+  if (f.visaSponsorshipOnly) n++;
+  if (f.internationalOnly) n++;
   return n;
 }
 
@@ -645,6 +677,14 @@ function applyFilters(jobs: VcJob[], f: Filters, dismissed: Set<string>): VcJob[
     if (f.maxYearsRequired !== null && j.years_min !== null && j.years_min > f.maxYearsRequired) {
       return false;
     }
+    if (f.levels.length > 0) {
+      if (!j.level || !f.levels.includes(j.level)) return false;
+    }
+    if (f.countries.length > 0) {
+      if (!j.country || !f.countries.includes(j.country)) return false;
+    }
+    if (f.visaSponsorshipOnly && j.visa_sponsorship !== true) return false;
+    if (f.internationalOnly && !j.is_international) return false;
     return true;
   });
 }
@@ -941,7 +981,7 @@ export default function CareerBuddy() {
 
       const { data, error } = await supabase
         .from("jobs")
-        .select("company_name, role_title, role_category, location, url, ats_source, posted_date, is_remote, description, requirements, years_min, years_max, salary_min, salary_max, salary_currency, languages_required")
+        .select("company_name, role_title, role_category, location, url, ats_source, posted_date, is_remote, description, requirements, years_min, years_max, salary_min, salary_max, salary_currency, languages_required, level, country, city, visa_sponsorship, is_international")
         .eq("is_active", true)
         .order("posted_date", { ascending: false, nullsFirst: false })
         .limit(60);
@@ -966,6 +1006,11 @@ export default function CareerBuddy() {
         salary_max: number | null;
         salary_currency: string | null;
         languages_required: string[] | null;
+        level: JobLevel | null;
+        country: string | null;
+        city: string | null;
+        visa_sponsorship: boolean | null;
+        is_international: boolean | null;
       }>;
       setJobs(
         rows.map((r) => {
@@ -988,6 +1033,11 @@ export default function CareerBuddy() {
             salary_max: r.salary_max,
             salary_currency: r.salary_currency,
             languages_required: r.languages_required ?? [],
+            level: r.level,
+            country: r.country,
+            city: r.city,
+            visa_sponsorship: r.visa_sponsorship,
+            is_international: r.is_international === true,
             jobTokens: tokenize(`${r.role_title} ${desc}`),
             reqTokens: tokenize(reqs),
           };
@@ -2497,6 +2547,9 @@ function JobCard({
         {job.role_category && job.role_category !== "other" && (
           <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">{job.role_category}</span>
         )}
+        {job.level && (
+          <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">{job.level}</span>
+        )}
         {job.years_min !== null && (
           <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
             {job.years_max !== null ? `${job.years_min}–${job.years_max}y` : `${job.years_min}+y`}
@@ -2507,7 +2560,13 @@ function JobCard({
             {formatSalary(job.salary_min, job.salary_max, job.salary_currency)}
           </span>
         )}
-        {job.languages_required.slice(0, 3).map((l) => (
+        {job.visa_sponsorship === true && (
+          <span className="px-2 py-0.5 rounded-full bg-teal-50 text-teal-700">visa OK</span>
+        )}
+        {job.is_international && (
+          <span className="px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700">multi-country</span>
+        )}
+        {job.languages_required.slice(0, 2).map((l) => (
           <span key={l} className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-700">{l}</span>
         ))}
         <span className="text-gray-400">{relativeDays(job.posted_date)}</span>
@@ -2662,6 +2721,22 @@ function FilterBar({
     return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
   }, [jobs]);
 
+  const countryCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const j of jobs) {
+      if (j.country) m.set(j.country, (m.get(j.country) ?? 0) + 1);
+    }
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
+  }, [jobs]);
+
+  const levelCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const j of jobs) {
+      if (j.level) m.set(j.level, (m.get(j.level) ?? 0) + 1);
+    }
+    return m;
+  }, [jobs]);
+
   function toggleArr(arr: string[], v: string): string[] {
     return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
   }
@@ -2733,6 +2808,64 @@ function FilterBar({
             </label>
           </div>
         </div>
+      </div>
+
+      <div>
+        <div className="text-xs font-medium text-gray-600 mb-2">Seniority level</div>
+        <div className="flex flex-wrap gap-2">
+          {(["intern","junior","mid","senior","lead","principal","executive"] as JobLevel[]).map((lvl) => {
+            const on = filters.levels.includes(lvl);
+            const count = levelCounts.get(lvl) ?? 0;
+            return (
+              <button
+                key={lvl}
+                type="button"
+                onClick={() => onChange({ ...filters, levels: (toggleArr(filters.levels as string[], lvl) as JobLevel[]) })}
+                className={`text-xs px-2.5 py-1 rounded-full border ${on ? "bg-purple-600 border-purple-600 text-white" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"}`}
+              >
+                {lvl} <span className="opacity-60">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <div className="text-xs font-medium text-gray-600 mb-2">Country</div>
+        <div className="flex flex-wrap gap-2">
+          {countryCounts.slice(0, 14).map(([country, count]) => {
+            const on = filters.countries.includes(country);
+            return (
+              <button
+                key={country}
+                type="button"
+                onClick={() => onChange({ ...filters, countries: toggleArr(filters.countries, country) })}
+                className={`text-xs px-2.5 py-1 rounded-full border ${on ? "bg-purple-600 border-purple-600 text-white" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"}`}
+              >
+                {country} <span className="opacity-60">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex items-center gap-2 text-xs text-gray-700">
+          <input
+            type="checkbox"
+            checked={filters.visaSponsorshipOnly}
+            onChange={(e) => onChange({ ...filters, visaSponsorshipOnly: e.target.checked })}
+          />
+          Visa sponsorship only
+        </label>
+        <label className="flex items-center gap-2 text-xs text-gray-700">
+          <input
+            type="checkbox"
+            checked={filters.internationalOnly}
+            onChange={(e) => onChange({ ...filters, internationalOnly: e.target.checked })}
+          />
+          Multi-country only
+        </label>
       </div>
 
       <div>

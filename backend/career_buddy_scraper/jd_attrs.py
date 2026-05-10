@@ -236,3 +236,186 @@ def extract_all(description: str, requirements: str = "") -> dict[str, object]:
         "salary_currency": sal_cur,
         "languages_required": languages,
     }
+
+
+# ============================================================
+# Level (intern / junior / mid / senior / lead / principal / executive)
+# ============================================================
+
+# Order matters — match the most specific first. Intern beats junior, exec beats lead.
+_LEVEL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    ("executive", re.compile(r"\b(c[-\s]?level|cxo|chief\s+\w+\s+officer|vp\b|vice\s+president|svp|evp|head\s+of\s+\w+)\b", re.I)),
+    ("principal", re.compile(r"\bprincipal\b", re.I)),
+    ("lead", re.compile(r"\b(lead|staff|director)\b", re.I)),
+    ("senior", re.compile(r"\b(senior|sr\.?)\b", re.I)),
+    ("intern", re.compile(r"\b(intern|internship|werkstud|praktikant|stagiaire|stage|trainee\b)", re.I)),
+    ("junior", re.compile(r"\b(junior|jr\.?|entry[-\s]?level|graduate|associate|analyst)\b", re.I)),
+]
+
+
+def extract_level(role_title: str, description: str = "") -> str | None:
+    """Pick the most specific level from role_title; fall back to description."""
+    if not role_title:
+        return None
+    for label, pat in _LEVEL_PATTERNS:
+        if pat.search(role_title):
+            return label
+    if description:
+        for label, pat in _LEVEL_PATTERNS:
+            if pat.search(description[:500]):
+                return label
+    return None
+
+
+# ============================================================
+# Country / city — parsed from raw location string.
+# ============================================================
+
+# Common country names + ISO-like aliases. Lowercase keys.
+_COUNTRY_ALIASES: dict[str, str] = {
+    "germany": "Germany", "deutschland": "Germany", "de": "Germany",
+    "united kingdom": "United Kingdom", "uk": "United Kingdom", "england": "United Kingdom", "scotland": "United Kingdom",
+    "united states": "United States", "usa": "United States", "us": "United States", "u.s.": "United States",
+    "france": "France",
+    "spain": "Spain", "españa": "Spain",
+    "italy": "Italy", "italia": "Italy",
+    "netherlands": "Netherlands", "the netherlands": "Netherlands", "holland": "Netherlands",
+    "switzerland": "Switzerland", "schweiz": "Switzerland",
+    "austria": "Austria", "österreich": "Austria",
+    "ireland": "Ireland",
+    "belgium": "Belgium", "belgique": "Belgium",
+    "portugal": "Portugal",
+    "denmark": "Denmark", "dänemark": "Denmark",
+    "sweden": "Sweden",
+    "norway": "Norway",
+    "finland": "Finland",
+    "poland": "Poland",
+    "canada": "Canada",
+    "australia": "Australia",
+    "singapore": "Singapore",
+    "japan": "Japan",
+    "india": "India",
+    "brazil": "Brazil",
+    "mexico": "Mexico",
+}
+
+# City → canonical country (used when location only mentions a city).
+_CITY_TO_COUNTRY: dict[str, tuple[str, str]] = {
+    "berlin": ("Berlin", "Germany"),
+    "munich": ("Munich", "Germany"), "münchen": ("Munich", "Germany"),
+    "hamburg": ("Hamburg", "Germany"),
+    "frankfurt": ("Frankfurt", "Germany"),
+    "köln": ("Cologne", "Germany"), "cologne": ("Cologne", "Germany"),
+    "düsseldorf": ("Düsseldorf", "Germany"), "dusseldorf": ("Düsseldorf", "Germany"),
+    "stuttgart": ("Stuttgart", "Germany"),
+    "vienna": ("Vienna", "Austria"), "wien": ("Vienna", "Austria"),
+    "zurich": ("Zurich", "Switzerland"), "zürich": ("Zurich", "Switzerland"),
+    "geneva": ("Geneva", "Switzerland"), "genf": ("Geneva", "Switzerland"),
+    "amsterdam": ("Amsterdam", "Netherlands"),
+    "rotterdam": ("Rotterdam", "Netherlands"),
+    "paris": ("Paris", "France"),
+    "lyon": ("Lyon", "France"),
+    "london": ("London", "United Kingdom"),
+    "manchester": ("Manchester", "United Kingdom"),
+    "edinburgh": ("Edinburgh", "United Kingdom"),
+    "dublin": ("Dublin", "Ireland"),
+    "madrid": ("Madrid", "Spain"),
+    "barcelona": ("Barcelona", "Spain"),
+    "milan": ("Milan", "Italy"), "milano": ("Milan", "Italy"),
+    "rome": ("Rome", "Italy"), "roma": ("Rome", "Italy"),
+    "stockholm": ("Stockholm", "Sweden"),
+    "copenhagen": ("Copenhagen", "Denmark"),
+    "oslo": ("Oslo", "Norway"),
+    "helsinki": ("Helsinki", "Finland"),
+    "warsaw": ("Warsaw", "Poland"), "warszawa": ("Warsaw", "Poland"),
+    "lisbon": ("Lisbon", "Portugal"), "lissabon": ("Lisbon", "Portugal"),
+    "brussels": ("Brussels", "Belgium"), "brussel": ("Brussels", "Belgium"),
+    "new york": ("New York", "United States"), "nyc": ("New York", "United States"),
+    "san francisco": ("San Francisco", "United States"), "sf": ("San Francisco", "United States"),
+    "los angeles": ("Los Angeles", "United States"),
+    "toronto": ("Toronto", "Canada"),
+    "vancouver": ("Vancouver", "Canada"),
+    "sydney": ("Sydney", "Australia"),
+    "melbourne": ("Melbourne", "Australia"),
+}
+
+
+def extract_location(location: str | None) -> tuple[str | None, str | None, bool]:
+    """Parse ``location`` into ``(city, country, is_international)``.
+
+    is_international = True when more than one canonical city OR more than one country
+    is mentioned in the field — typical signal for "Berlin · London · Remote".
+    """
+    if not location:
+        return None, None, False
+    lower = location.lower()
+    cities_found: list[tuple[str, str]] = []
+    for key, (city, country) in _CITY_TO_COUNTRY.items():
+        if re.search(rf"\b{re.escape(key)}\b", lower):
+            cities_found.append((city, country))
+
+    countries_explicit: list[str] = []
+    for key, canonical in _COUNTRY_ALIASES.items():
+        if re.search(rf"\b{re.escape(key)}\b", lower):
+            if canonical not in countries_explicit:
+                countries_explicit.append(canonical)
+
+    distinct_countries: set[str] = {c for _, c in cities_found} | set(countries_explicit)
+    is_international = (
+        len({(c, co) for c, co in cities_found}) >= 2
+        or len(distinct_countries) >= 2
+    )
+
+    if cities_found:
+        city, country = cities_found[0]
+        return city, country, is_international
+    if countries_explicit:
+        return None, countries_explicit[0], is_international
+    return None, None, is_international
+
+
+# ============================================================
+# Visa sponsorship (true / false / unknown)
+# ============================================================
+
+_VISA_NEG = re.compile(
+    r"(no\s+visa\s+sponsorship|cannot\s+sponsor|will\s+not\s+sponsor|"
+    r"unable\s+to\s+sponsor|no\s+sponsorship\s+(?:available|provided))",
+    re.I,
+)
+_VISA_POS = re.compile(
+    r"(visa\s+sponsorship|will\s+sponsor|happy\s+to\s+sponsor|sponsorship\s+available|"
+    r"we\s+(?:can|will)\s+sponsor|relocation\s+(?:assistance|support)\s+(?:available|provided)|"
+    r"visumsponsoring|visa\s+support)",
+    re.I,
+)
+
+
+def extract_visa_sponsorship(text: str) -> bool | None:
+    if not text:
+        return None
+    if _VISA_NEG.search(text):
+        return False
+    if _VISA_POS.search(text):
+        return True
+    return None
+
+
+# ============================================================
+# Combined v2: extract_more() returns the new attributes.
+# ============================================================
+
+
+def extract_more(role_title: str, location: str | None, description: str, requirements: str = "") -> dict[str, object]:
+    """Return the level/country/city/visa/international block."""
+    full = f"{description}\n{requirements}".strip()
+    level = extract_level(role_title, description)
+    city, country, is_intl = extract_location(location)
+    visa = extract_visa_sponsorship(full)
+    return {
+        "level": level,
+        "country": country,
+        "city": city,
+        "visa_sponsorship": visa,
+        "is_international": is_intl,
+    }

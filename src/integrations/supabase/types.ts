@@ -147,16 +147,20 @@ export type Database = {
       jobs: {
         Row: {
           ats_source: string
+          city: string | null
           company_domain: string
           company_name: string
+          country: string | null
           description: string | null
           employment_type: string | null
           first_seen_at: string | null
           id: string
           is_active: boolean | null
+          is_international: boolean | null
           is_remote: boolean | null
           languages_required: string[] | null
           last_seen_at: string | null
+          level: Database["public"]["Enums"]["job_level"] | null
           location: string | null
           location_normalized: string | null
           posted_date: string | null
@@ -168,21 +172,26 @@ export type Database = {
           salary_max: number | null
           salary_min: number | null
           url: string
+          visa_sponsorship: boolean | null
           years_max: number | null
           years_min: number | null
         }
         Insert: {
           ats_source: string
+          city?: string | null
           company_domain: string
           company_name: string
+          country?: string | null
           description?: string | null
           employment_type?: string | null
           first_seen_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_international?: boolean | null
           is_remote?: boolean | null
           languages_required?: string[] | null
           last_seen_at?: string | null
+          level?: Database["public"]["Enums"]["job_level"] | null
           location?: string | null
           location_normalized?: string | null
           posted_date?: string | null
@@ -194,21 +203,26 @@ export type Database = {
           salary_max?: number | null
           salary_min?: number | null
           url: string
+          visa_sponsorship?: boolean | null
           years_max?: number | null
           years_min?: number | null
         }
         Update: {
           ats_source?: string
+          city?: string | null
           company_domain?: string
           company_name?: string
+          country?: string | null
           description?: string | null
           employment_type?: string | null
           first_seen_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_international?: boolean | null
           is_remote?: boolean | null
           languages_required?: string[] | null
           last_seen_at?: string | null
+          level?: Database["public"]["Enums"]["job_level"] | null
           location?: string | null
           location_normalized?: string | null
           posted_date?: string | null
@@ -220,6 +234,7 @@ export type Database = {
           salary_max?: number | null
           salary_min?: number | null
           url?: string
+          visa_sponsorship?: boolean | null
           years_max?: number | null
           years_min?: number | null
         }
@@ -356,7 +371,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      job_level:
+        | "intern"
+        | "junior"
+        | "mid"
+        | "senior"
+        | "lead"
+        | "principal"
+        | "executive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -483,6 +505,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      job_level: [
+        "intern",
+        "junior",
+        "mid",
+        "senior",
+        "lead",
+        "principal",
+        "executive",
+      ],
+    },
   },
 } as const
