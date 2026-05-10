@@ -36,9 +36,17 @@ populated cell.
   serves Max-20x sub OAuth. Verify with
   `curl -m 3 -s http://127.0.0.1:5051/health` before starting any
   batch run.
-- **Model:** `claude-haiku-4-5-20251001`. Classification task, 16
-  values, structured output — Haiku is the right tool. Do NOT use
-  Sonnet or Opus.
+- **Session orchestration model:** **Sonnet 4.6** (`claude-sonnet-4-6`).
+  Routine batch-job orchestration + CLI scripting + per-batch
+  sample-check — Sonnet handles it cleanly. Do NOT start this
+  session with Opus 4.7 (wastes Max-20x quota), do NOT start with
+  Haiku 4.5 (too weak for rebase-conflict resolution + multi-step
+  CLI orchestration).
+- **Batch model (different layer!):** `claude-haiku-4-5-20251001`
+  passed to `ClaudeCli(model=...)` for the per-job classification
+  calls. Haiku is the right tool for the 16-value classification
+  task + Layer-3 extraction. Do NOT swap to Sonnet or Opus for the
+  batch calls — burns sub quota for negligible quality gain.
 - **Tests:** 260 frontend (vitest), 258 backend (pytest). Keep green.
 - **Last commit on origin/main:** see `git log --oneline -1`.
 
