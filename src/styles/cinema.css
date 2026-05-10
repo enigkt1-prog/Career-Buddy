@@ -416,3 +416,16 @@
     display: none !important;
   }
 }
+
+/*
+ * Floating Buddy widget — bubble + side-panel. Tailwind's
+ * `transition-transform` covers the slide, but reduced-motion users
+ * should land at the final state instantly so we cancel the
+ * transition.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .floating-buddy-bubble,
+  .floating-buddy-panel {
+    transition: none !important;
+  }
+}

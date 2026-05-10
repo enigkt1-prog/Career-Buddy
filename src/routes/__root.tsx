@@ -12,6 +12,7 @@ import {
 import appCss from "../styles.css?url";
 import { Nav } from "@/components/Nav";
 import { PromoBar, SiteFooter } from "@/components/cinema";
+import { FloatingBuddy } from "@/components/buddy/FloatingBuddy";
 import { fetchPersistedTheme } from "@/lib/cinema-theme";
 
 function NotFoundComponent() {
@@ -212,6 +213,7 @@ function RootComponent() {
           <Outlet />
         </main>
         <SiteFooter />
+        <FloatingBuddy />
       </div>
     </QueryClientProvider>
   );

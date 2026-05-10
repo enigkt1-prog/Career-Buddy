@@ -116,6 +116,13 @@ function ChatPage() {
     const id = window.setInterval(() => {
       void probeShim().then(setShimOnline);
     }, 30_000);
+    // Phase 2 floating-Buddy entry point: when the panel dispatches a
+    // starter prompt via /buddy?prefill=…, seed the composer so the
+    // user lands ready to send.
+    if (typeof window !== "undefined") {
+      const prefill = new URL(window.location.href).searchParams.get("prefill");
+      if (prefill) setInput(prefill);
+    }
     return () => window.clearInterval(id);
   }, []);
 
