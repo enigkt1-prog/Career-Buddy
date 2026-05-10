@@ -1,0 +1,36 @@
+[
+  {
+    "name": "Tractive",
+    "domain": "tractive.com",
+    "careers_url": "https://tractive.jobs.personio.de/",
+    "geography": "Pasching, AT",
+    "stage_focus": "growth",
+    "sector_tags": ["consumer", "iot", "petcare"],
+    "tier": 2,
+    "sources": ["session-d-gap2-batch3"],
+    "notes": "Austrian pet-tracker IoT; personio verified 3 jobs"
+  },
+  {
+    "name": "Urban Sports Club",
+    "domain": "urbansportsclub.com",
+    "careers_url": "https://urbansportsclub.jobs.personio.de/",
+    "geography": "Berlin, DE",
+    "stage_focus": "growth",
+    "sector_tags": ["consumer", "fitness", "subscription"],
+    "tier": 2,
+    "sources": ["session-d-gap2-batch3"],
+    "notes": "Berlin-HQ multi-sport subscription; personio verified 38 jobs"
+  },
+  {
+    "name": "Visionaries Club",
+    "domain": "visionaries.club",
+    "careers_url": "https://visionariesclub.recruitee.com",
+    "geography": "Berlin, DE",
+    "stage_focus": "seed",
+    "sector_tags": ["b2b", "vc"],
+    "tier": 1,
+    "portfolio_companies_url": "https://visionaries.club/portfolio",
+    "sources": ["session-d-gap2-batch3"],
+    "notes": "DACH B2B-focus VC; recruitee verified 1 job (firm-direct hiring)"
+  }
+]
