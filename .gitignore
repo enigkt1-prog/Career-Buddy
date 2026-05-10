@@ -37,6 +37,11 @@ WORKPLAN-*.md
 # Classify audit CSVs (per-run dry-run + write logs)
 backend/audit/
 
+# Frontend test artifacts
+test-results/
+playwright-report/
+coverage/
+
 # ============================================================
 # Frontend (TanStack Start + Vite + Cloudflare Workers)
 # ============================================================

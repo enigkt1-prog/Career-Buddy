@@ -1,0 +1,50 @@
+# Iter-3 bundle baseline — captured 2026-05-10T10:32:00Z
+# Pre-split. Captured at start of Phase 0 (commit prior to v5 plan execution).
+
+## dist/client/assets (browser bundle)
+    499675  dist/client/assets/mammoth.browser-D1K9LMt7.js
+    415929  dist/client/assets/pdf-B75MOh95.js
+    385048  dist/client/assets/index-CdePKmXe.js
+    204957  dist/client/assets/client-rf-N6jhz.js
+     72362  dist/client/assets/CareerBuddy-JwWro3nE.js
+     12596  dist/client/assets/profile-DNOLdDVY.js
+      7418  dist/client/assets/design-preview-DOJpjhrE.js
+      7178  dist/client/assets/buddy-D8PeS0XW.js
+      1754  dist/client/assets/SectionDivider-waFzBIER.js
+      1366  dist/client/assets/cv-parser-DL3msurv.js
+      1112  dist/client/assets/index-kqbgfVGq.js
+       944  dist/client/assets/jobs-D195_qQU.js
+       939  dist/client/assets/RevealOnScroll-BXjmeV9l.js
+       495  dist/client/assets/sparkles-C5kt-YnL.js
+       356  dist/client/assets/PillButton-4_SPXZYW.js
+        68  dist/client/assets/pdf.worker.min-B7BB9YL5.js
+
+## dist/server/assets (SSR/worker bundle)
+   1018156  dist/server/assets/mammoth.browser-Dk12tKiY.js
+    806258  dist/server/assets/pdf-alY2YfZX.js
+    726771  dist/server/assets/server-BGAZ--87.js
+    706944  dist/server/assets/client-D2JZF3Ti.js
+    276517  dist/server/assets/router-CVFoenCY.js
+    127866  dist/server/assets/CareerBuddy-Dbxz5_Dl.js
+     21310  dist/server/assets/worker-entry-BeBeThmc.js
+     20401  dist/server/assets/profile-CxLmZAkd.js
+     12332  dist/server/assets/buddy-C64SGYcL.js
+     11617  dist/server/assets/design-preview-CT4cRHzM.js
+      3083  dist/server/assets/SectionDivider-B0Nj_DMn.js
+      2017  dist/server/assets/start-B3N3Ic03.js
+      1826  dist/server/assets/index-S_snaFHv.js
+      1825  dist/server/assets/_tanstack-start-manifest_v-BkvVab6U.js
+      1735  dist/server/assets/cv-parser-DT5ZTkV-.js
+      1607  dist/server/assets/RevealOnScroll-DyXng5vm.js
+      1491  dist/server/assets/jobs-B7_F9c9a.js
+       695  dist/server/assets/PillButton-DkYawwsb.js
+       651  dist/server/assets/sparkles-BlJxy6Od.js
+       136  dist/server/assets/__23tanstack-start-plugin-adapters-Cwee5PKy.js
+       102  dist/server/assets/pdf.worker.min-dwAkBuWR.js
+
+## Per-route chunks (browser)
+  /index: 385048 bytes (dist/client/assets/index-CdePKmXe.js)
+  /profile: 12596 bytes (dist/client/assets/profile-DNOLdDVY.js)
+  /cv: 1366 bytes (dist/client/assets/cv-parser-DL3msurv.js)
+  /chat: NOT FOUND in dist/client
+  /design-preview: 7418 bytes (dist/client/assets/design-preview-DOJpjhrE.js)
