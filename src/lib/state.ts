@@ -15,8 +15,35 @@ import {
   type Education,
   type Position,
   type Profile,
+  type SkillEntry,
+  type SkillLevel,
   type State,
 } from "./types";
+
+const VALID_SKILL_LEVELS: ReadonlySet<SkillLevel> = new Set([
+  "beginner",
+  "intermediate",
+  "advanced",
+  "expert",
+]);
+
+function migrateSkill(entry: unknown): SkillEntry | null {
+  if (!entry || typeof entry !== "object") return null;
+  const e = entry as Record<string, unknown>;
+  const name = typeof e.name === "string" ? e.name.trim() : "";
+  if (!name) return null;
+  const out: SkillEntry = { name };
+  if (typeof e.level === "string" && VALID_SKILL_LEVELS.has(e.level as SkillLevel)) {
+    out.level = e.level as SkillLevel;
+  }
+  if (typeof e.years === "number" && Number.isFinite(e.years)) {
+    out.years = Math.max(0, Math.min(50, e.years));
+  }
+  if (typeof e.evidence === "string" && e.evidence.trim()) {
+    out.evidence = e.evidence.trim();
+  }
+  return out;
+}
 
 export function emptyState(): State {
   return {
@@ -70,6 +97,9 @@ export function migrateProfile(raw: unknown): Profile {
           ...e,
           id: e.id || `e${i}_${Date.now()}`,
         }))
+      : [],
+    skills: Array.isArray(r.skills)
+      ? (r.skills.map(migrateSkill).filter(Boolean) as SkillEntry[])
       : [],
     cv_filename: typeof r.cv_filename === "string" ? r.cv_filename : null,
     cv_summary: typeof r.cv_summary === "string" ? r.cv_summary : null,

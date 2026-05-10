@@ -94,6 +94,31 @@ describe("migrateProfile", () => {
     expect(migrateProfile({ cv_fit_score: "7.5" }).cv_fit_score).toBeNull();
     expect(migrateProfile({}).cv_fit_score).toBeNull();
   });
+
+  test("skills migrate keeps named entries and clamps years to [0,50]", () => {
+    const out = migrateProfile({
+      skills: [
+        { name: "Python", level: "advanced", years: 4, evidence: "5y data team" },
+        { name: "  ", level: "expert" }, // dropped — empty name
+        { name: "TypeScript", level: "guru" }, // bad level dropped, entry kept
+        { name: "SQL", years: 99 }, // clamped to 50
+        { name: "Bash", years: -3 }, // clamped to 0
+        "not-an-object", // dropped
+        null, // dropped
+      ],
+    });
+    expect(out.skills).toEqual([
+      { name: "Python", level: "advanced", years: 4, evidence: "5y data team" },
+      { name: "TypeScript" },
+      { name: "SQL", years: 50 },
+      { name: "Bash", years: 0 },
+    ]);
+  });
+
+  test("skills falls back to [] when not an array", () => {
+    expect(migrateProfile({ skills: "nope" }).skills).toEqual([]);
+    expect(migrateProfile({}).skills).toEqual([]);
+  });
 });
 
 describe("loadState", () => {

@@ -62,6 +62,15 @@ export type Education = {
   end_date?: string;
 };
 
+export type SkillLevel = "beginner" | "intermediate" | "advanced" | "expert";
+
+export type SkillEntry = {
+  name: string;
+  level?: SkillLevel;
+  years?: number;
+  evidence?: string;
+};
+
 export type CvAnalysisResponse = {
   summary?: string;
   fit_score?: number;
@@ -74,6 +83,7 @@ export type CvAnalysisResponse = {
   headline?: string;
   work_history?: Array<Omit<Position, "id">>;
   education?: Array<Omit<Education, "id">>;
+  skills?: SkillEntry[];
 };
 
 export type Profile = {
@@ -92,6 +102,7 @@ export type Profile = {
   location_preferences: string[];
   work_history: Position[];
   education: Education[];
+  skills: SkillEntry[];
   cv_filename: string | null;
   cv_summary: string | null;
   cv_fit_score: number | null;
@@ -190,6 +201,7 @@ export const DEFAULT_PROFILE: Profile = {
   location_preferences: ["Berlin", "Remote-DACH"],
   work_history: [],
   education: [],
+  skills: [],
   cv_filename: null,
   cv_summary: null,
   cv_fit_score: null,

@@ -7,6 +7,7 @@ import {
   saveCareerBuddyState,
   type CareerBuddyState,
   type CvAnalysisResponse,
+  type SkillEntry,
 } from "./cv-storage";
 
 describe("STORAGE_KEY", () => {
@@ -132,6 +133,35 @@ describe("mergeAnalysisIntoState", () => {
     const stripped: CvAnalysisResponse = { ...baseAnalysis, fit_score: undefined };
     const out = mergeAnalysisIntoState({}, stripped, "cv.pdf");
     expect(out.profile?.cv_fit_score).toBeNull();
+  });
+
+  test("skills array overwrites prior when analysis array non-empty", () => {
+    const prior: CareerBuddyState = {
+      profile: { skills: [{ name: "old-skill" }] as SkillEntry[] },
+    };
+    const skills: SkillEntry[] = [
+      { name: "Python", level: "advanced", years: 4 },
+      { name: "SQL", level: "expert", years: 6, evidence: "5y data team" },
+    ];
+    const out = mergeAnalysisIntoState(prior, { ...baseAnalysis, skills }, "cv.pdf");
+    expect(out.profile?.skills).toEqual(skills);
+  });
+
+  test("prior skills kept when analysis skills array empty", () => {
+    const prior: CareerBuddyState = {
+      profile: { skills: [{ name: "kept" }] as SkillEntry[] },
+    };
+    const out = mergeAnalysisIntoState(
+      prior,
+      { ...baseAnalysis, skills: [] },
+      "cv.pdf",
+    );
+    expect(out.profile?.skills).toEqual([{ name: "kept" }]);
+  });
+
+  test("skills default to [] when neither prior nor analysis has any", () => {
+    const out = mergeAnalysisIntoState({}, baseAnalysis, "cv.pdf");
+    expect(out.profile?.skills).toEqual([]);
   });
 
   test("end-to-end: load → merge → save round-trip", () => {

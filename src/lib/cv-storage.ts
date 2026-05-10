@@ -24,6 +24,20 @@
 
 export const STORAGE_KEY = "career-buddy-state";
 
+export type SkillLevel = "beginner" | "intermediate" | "advanced" | "expert";
+
+/**
+ * First-class skill entry. Mirror of the analyze-cv structured response
+ * (see supabase/functions/analyze-cv/index.ts) and the JSONB shape
+ * stored in the `user_profile.skills` Supabase column (0012 migration).
+ */
+export type SkillEntry = {
+  name: string;
+  level?: SkillLevel;
+  years?: number;
+  evidence?: string;
+};
+
 export type CvAnalysisResponse = {
   summary?: string | null;
   fit_score?: number | null;
@@ -36,6 +50,7 @@ export type CvAnalysisResponse = {
   headline?: string;
   work_history?: unknown[];
   education?: unknown[];
+  skills?: SkillEntry[];
 };
 
 export type Profile = {
@@ -51,6 +66,7 @@ export type Profile = {
   recommendations?: string[];
   target_role_categories?: string[];
   location_preferences?: string[];
+  skills?: SkillEntry[];
   // Forward-compatible: monolith may carry additional keys we don't
   // own here (target_role, target_geo, work_history, etc.). They pass
   // through untouched via the spread in mergeAnalysisIntoState.
@@ -140,6 +156,7 @@ export function mergeAnalysisIntoState(
     location_preferences: analysis.location_preferences?.length
       ? analysis.location_preferences
       : (prior.location_preferences ?? []),
+    skills: analysis.skills?.length ? analysis.skills : (prior.skills ?? []),
   };
   return { ...state, profile: next };
 }
