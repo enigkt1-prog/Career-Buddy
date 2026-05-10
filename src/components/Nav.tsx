@@ -1,4 +1,4 @@
-import { MessageCircle, User } from "lucide-react";
+import { Briefcase, MessageCircle, User } from "lucide-react";
 
 type NavTarget = {
   label: string;
@@ -6,11 +6,10 @@ type NavTarget = {
   Icon: typeof User;
 };
 
-// IA cleanup (Phase 0):
-// - "Overview" dropped — the Career-Buddy logo IS the home link.
-// - "CV" dropped — folded into Profile (CV upload lives there now).
-// - "Chat" renamed to "Buddy" — friendlier, matches the product voice.
+// Phase 0.5: added "Jobs" — the universal aggregated feed lives at
+// /jobs (was previously buried inside Overview's role grid).
 const TARGETS: NavTarget[] = [
+  { label: "Jobs", href: "/jobs", Icon: Briefcase },
   { label: "Profile", href: "/profile", Icon: User },
   { label: "Buddy", href: "/buddy", Icon: MessageCircle },
 ];

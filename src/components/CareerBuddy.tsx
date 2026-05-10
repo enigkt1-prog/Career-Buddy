@@ -795,7 +795,12 @@ function fitWhy(job: VcJob, profile: Profile, matched: string[]): string {
   return reasons.slice(0, 4).join(" · ");
 }
 
-export default function CareerBuddy() {
+type CareerBuddyProps = {
+  /** Render only the roles grid + filters; hide profile, tracker, CV. */
+  rolesOnly?: boolean;
+};
+
+export default function CareerBuddy({ rolesOnly = false }: CareerBuddyProps = {}) {
   const [state, setState] = useState<State>(emptyState);
   const [hydrated, setHydrated] = useState(false);
   const [chatInput, setChatInput] = useState("");
@@ -979,12 +984,24 @@ export default function CareerBuddy() {
         });
       }
 
+      // Overview shows top-N picks (60-row fetch is plenty); /jobs needs
+      // the full filterable feed across all 9,980 active jobs so older
+      // postings (e.g. founders-associate, internships) actually surface
+      // in filter results. 10,000 is a safe ceiling well above current
+      // jobs.is_active count. Phase 3 will replace with server-side
+      // pagination + GIN search to keep the payload under 10MB.
+      const fetchLimit = rolesOnly ? 10000 : 60;
+      // Supabase PostgREST default cap is 1000 rows per request — `.limit`
+      // cannot bypass it. `.range(0, fetchLimit - 1)` explicitly requests
+      // the wider window. Description + requirements stay in the column
+      // list because the UI shows excerpts; if payload becomes a problem
+      // (Phase 3) we lazy-load those two on card expand.
       const { data, error } = await supabase
         .from("jobs")
         .select("company_name, role_title, role_category, location, url, ats_source, posted_date, is_remote, description, requirements, years_min, years_max, salary_min, salary_max, salary_currency, languages_required, level, country, city, visa_sponsorship, is_international")
         .eq("is_active", true)
         .order("posted_date", { ascending: false, nullsFirst: false })
-        .limit(60);
+        .range(0, fetchLimit - 1);
       if (error) {
         console.error("[jobs] fetch failed", error);
         return;
@@ -1278,6 +1295,7 @@ export default function CareerBuddy() {
   // Sequential queue: only one in-flight match-job request at a time.
   const matchQueueRef = useRef<Array<{ key: string; job: VcJob }>>([]);
   const matchInFlightRef = useRef(false);
+  const cvFileInputRef = useRef<HTMLInputElement | null>(null);
 
   async function runOne(key: string, job: VcJob) {
     setMatches((m) => ({ ...m, [key]: { status: "loading" } }));
@@ -1388,6 +1406,7 @@ export default function CareerBuddy() {
   return (
     <div className="min-h-screen bg-cinema-cream text-cinema-ink" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
       <main className="max-w-6xl mx-auto px-6">
+        {!rolesOnly && (<>
         <section id="profile" className="py-8 scroll-mt-16">
           <h1 className="text-3xl font-semibold tracking-tight mb-2">Land your first startup role.</h1>
           <p className="text-base text-gray-500 mb-3">
@@ -1426,23 +1445,34 @@ export default function CareerBuddy() {
             )}
           </div>
 
-          {(state.profile.built || chatReply) && (
-            <div id="cv-upload" className="bg-white border rounded-xl shadow-sm p-5 scroll-mt-16">
+          {/* CV upload — always visible (Phase 0.5: was previously gated
+              on profile.built, which silently hid it for first-time users).
+              Switched from <label>-wrap to button + ref + .click() to avoid
+              Safari quirks where label-wrapped hidden file inputs sometimes
+              fail to open the OS file picker. */}
+          <div id="cv-upload" className="bg-white border rounded-xl shadow-sm p-5 scroll-mt-16">
               <label className="text-sm font-medium block mb-2">Upload or paste your CV</label>
               <div className="flex items-center gap-3 mb-3">
-                <label className="inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-lg cursor-pointer hover:bg-gray-50">
+                <button
+                  type="button"
+                  onClick={() => cvFileInputRef.current?.click()}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-lg cursor-pointer hover:bg-gray-50"
+                >
                   <Upload className="w-4 h-4" />
                   <span>Upload .pdf / .docx / .txt</span>
-                  <input
-                    type="file"
-                    accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) void handleFile(f);
-                    }}
-                  />
-                </label>
+                </button>
+                <input
+                  ref={cvFileInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void handleFile(f);
+                    // Reset so the same file can be re-selected after error.
+                    e.target.value = "";
+                  }}
+                />
                 {cvFilename && <span className="text-xs text-gray-500">{cvFilename}</span>}
               </div>
               <textarea
@@ -1475,7 +1505,6 @@ export default function CareerBuddy() {
                 )}
               </div>
             </div>
-          )}
         </section>
 
         <section id="tracker" className="py-8 grid grid-cols-1 md:grid-cols-3 gap-6 scroll-mt-16">
@@ -1500,14 +1529,22 @@ export default function CareerBuddy() {
             </div>
           </div>
         </section>
+        </>)}
 
         <section id="roles" className="py-8 scroll-mt-16">
-          <h2 className="text-2xl font-semibold mb-1">Roles you might fit</h2>
+          <h2 className="text-2xl font-semibold mb-1">{rolesOnly ? "All live operator-track roles" : "Roles you might fit"}</h2>
           <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
             <p className="text-sm text-gray-500">
               {jobs.length === 0
                 ? "Loading live openings…"
-                : `Showing ${rankedJobs.length} of ${jobs.length} live openings, ranked by profile + CV.`}
+                : rolesOnly
+                ? `Showing ${rankedJobs.length} of ${jobs.length} live openings, ranked by profile + CV.`
+                : `Top 6 picks for you out of ${jobs.length} live openings. `}
+              {!rolesOnly && jobs.length > 0 && (
+                <a href="/jobs" className="underline text-cinema-pine hover:text-cinema-moss font-medium">
+                  See the full feed →
+                </a>
+              )}
             </p>
             <div className="flex items-center gap-3 text-xs">
               {state.dismissed_urls.length > 0 && (
@@ -1558,7 +1595,7 @@ export default function CareerBuddy() {
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {rankedJobs.map((j, idx) => {
+            {(rolesOnly ? rankedJobs : rankedJobs.slice(0, 6)).map((j, idx) => {
               const isTop = idx < 3 && j.fit >= 7.0 && j.fit >= topThreshold;
               const matchEntry = matches[j.url];
               const matchDisabled = !!(matchQuotaHit && Date.now() - matchQuotaHit < MATCH_QUOTA_COOLDOWN_MS) || matchesUsedToday >= MATCH_DAILY_LIMIT;

@@ -15,14 +15,15 @@ export const Route = createFileRoute("/design-preview")({
   component: DesignPreviewPage,
 });
 
-// Cinematic photography — soft cool green landscapes (forest mist,
-// alpine pines, meadow). Unsplash CDN. If a photo ID stops returning
-// a proper image Content-Type the browser's ORB will block it
-// silently — verify via browser_network_requests before replacing.
+// Cinematic photography — modern workspace + coworking direction
+// (Phase 0.5 swap from forest, which felt off-brand for a career app).
+// Unsplash CDN. If a photo ID stops returning a proper image
+// Content-Type the browser's ORB will block it silently — verify via
+// browser_network_requests before replacing.
 const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=2400&q=80";
+  "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=2400&q=80";
 const STORY_IMAGE =
-  "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=2400&q=80";
+  "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=2400&q=80";
 
 const RECRUITER_LOGOS = [
   { name: "Ashby" },

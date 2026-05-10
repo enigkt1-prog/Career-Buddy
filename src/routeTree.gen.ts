@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as DesignPreviewRouteImport } from './routes/design-preview'
 import { Route as CvRouteImport } from './routes/cv'
 import { Route as BuddyRouteImport } from './routes/buddy'
@@ -18,6 +19,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JobsRoute = JobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DesignPreviewRoute = DesignPreviewRouteImport.update({
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/buddy': typeof BuddyRoute
   '/cv': typeof CvRoute
   '/design-preview': typeof DesignPreviewRoute
+  '/jobs': typeof JobsRoute
   '/profile': typeof ProfileRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/buddy': typeof BuddyRoute
   '/cv': typeof CvRoute
   '/design-preview': typeof DesignPreviewRoute
+  '/jobs': typeof JobsRoute
   '/profile': typeof ProfileRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,22 @@ export interface FileRoutesById {
   '/buddy': typeof BuddyRoute
   '/cv': typeof CvRoute
   '/design-preview': typeof DesignPreviewRoute
+  '/jobs': typeof JobsRoute
   '/profile': typeof ProfileRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/buddy' | '/cv' | '/design-preview' | '/profile'
+  fullPaths: '/' | '/buddy' | '/cv' | '/design-preview' | '/jobs' | '/profile'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/buddy' | '/cv' | '/design-preview' | '/profile'
-  id: '__root__' | '/' | '/buddy' | '/cv' | '/design-preview' | '/profile'
+  to: '/' | '/buddy' | '/cv' | '/design-preview' | '/jobs' | '/profile'
+  id:
+    | '__root__'
+    | '/'
+    | '/buddy'
+    | '/cv'
+    | '/design-preview'
+    | '/jobs'
+    | '/profile'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +92,7 @@ export interface RootRouteChildren {
   BuddyRoute: typeof BuddyRoute
   CvRoute: typeof CvRoute
   DesignPreviewRoute: typeof DesignPreviewRoute
+  JobsRoute: typeof JobsRoute
   ProfileRoute: typeof ProfileRoute
 }
 
@@ -86,6 +103,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/jobs': {
+      id: '/jobs'
+      path: '/jobs'
+      fullPath: '/jobs'
+      preLoaderRoute: typeof JobsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/design-preview': {
@@ -124,6 +148,7 @@ const rootRouteChildren: RootRouteChildren = {
   BuddyRoute: BuddyRoute,
   CvRoute: CvRoute,
   DesignPreviewRoute: DesignPreviewRoute,
+  JobsRoute: JobsRoute,
   ProfileRoute: ProfileRoute,
 }
 export const routeTree = rootRouteImport

@@ -8,13 +8,15 @@ type Props = {
   className?: string;
 };
 
-// Cool forest with sun rays — sticks to the sage palette and avoids
-// the warm-brown drift of golden meadow photography.
+// Modern coworking interior — calm, plant-forward, cool light.
+// Phase 0.5 swap from forest sun-rays, which felt off-brand for a
+// career app.
 const FOOTER_IMAGE_DEFAULT =
-  "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=2400&q=80";
+  "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=2400&q=80";
 
 const PAGES = [
   { href: "/", label: "Overview" },
+  { href: "/jobs", label: "Jobs" },
   { href: "/profile", label: "Profile" },
   { href: "/buddy", label: "Buddy" },
 ];

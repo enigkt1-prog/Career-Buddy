@@ -21,8 +21,11 @@ export const Route = createFileRoute("/")({
   }),
 });
 
+// Cinematic photography — modern workspace at golden hour. Urban /
+// office direction (Phase 0.5 swap from forest, which felt off-brand
+// for a career app).
 const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=2400&q=80";
+  "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=2400&q=80";
 
 function Index() {
   return (
