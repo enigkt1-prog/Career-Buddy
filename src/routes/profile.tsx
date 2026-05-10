@@ -11,6 +11,7 @@ import {
   SectionDivider,
 } from "@/components/cinema";
 import { CvUploadInline } from "@/components/profile/CvUploadInline";
+import { TRACKS } from "@/lib/tracks";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -29,34 +30,9 @@ export const Route = createFileRoute("/profile")({
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=2400&q=80";
 
-// Phase 0.5 — broader bucket set covering the actual job-DB shape
-// (9,980 active roles span engineering, product, sales, marketing,
-// ops, finance, design, data, legal, plus the original operator
-// track). Hint copy includes typical experience needed so users
-// know e.g. Chief of Staff isn't an entry-level role.
-const TRACKS = [
-  // Operator-track (the original Career-Buddy wedge)
-  { id: "founders-associate", label: "Founders Associate / Special Projects", hint: "Early career, often direct from grad school. 0-3 years." },
-  { id: "bizops",             label: "BizOps · Operating Associate",            hint: "Generalist analytics + execution. 1-4 years." },
-  { id: "strategy",           label: "Strategy",                                 hint: "Often after consulting / banking. 2-5 years." },
-  { id: "chief-of-staff",     label: "Chief of Staff",                          hint: "Senior-IC, founder-adjacent. Usually 5+ years." },
-  { id: "investment-analyst", label: "Investment Analyst / Associate",          hint: "VC, pre-MBA. 1-4 years." },
-  { id: "bd",                 label: "Business Development · Partnerships",     hint: "Outbound + dealmaking. 2-6 years." },
-  // Sector-shaped (broader job-DB)
-  { id: "consulting",         label: "Consulting (MBB / Tier-2 / boutique)",   hint: "Structured problem-solving. 0-6 years (analyst → manager)." },
-  { id: "ib",                 label: "Investment Banking",                     hint: "M&A / Capital Markets / Coverage. 0-8 years." },
-  { id: "pe",                 label: "Private Equity",                          hint: "Pre-MBA → mid-cap. 2-7 years." },
-  // Function-shaped (the rest of the 9,980)
-  { id: "engineering",        label: "Engineering",                             hint: "Backend / frontend / infra / ML / data. 0-15 years." },
-  { id: "product",            label: "Product Management",                      hint: "PM / APM / GPM. 1-10 years." },
-  { id: "design",             label: "Design",                                  hint: "Product / brand / research. 1-10 years." },
-  { id: "data",               label: "Data + Analytics",                        hint: "DS / DA / ML eng. 1-8 years." },
-  { id: "sales",              label: "Sales · GTM",                             hint: "AE / SDR / GTM lead. 0-10 years." },
-  { id: "marketing",          label: "Marketing · Growth · Brand",              hint: "Growth / brand / content. 1-8 years." },
-  { id: "ops",                label: "Operations · People",                     hint: "Ops / HR / talent. 1-8 years." },
-  { id: "finance",            label: "Finance · Accounting",                    hint: "FP&A / controller / corp dev. 1-8 years." },
-  { id: "legal",              label: "Legal · Compliance",                      hint: "GC / counsel / compliance. 3+ years." },
-] as const;
+// TRACKS now lives in src/lib/tracks.ts (single source of truth shared
+// with future /jobs filter UI). See lib/tracks.ts for type + experience
+// window helpers.
 
 const EXPERIENCE_BUCKETS = [
   { id: "lt1",   label: "Less than 1 year"   },
