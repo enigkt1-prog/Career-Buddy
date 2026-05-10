@@ -125,7 +125,10 @@ proceeds with 7–9 immediately on top.
 - [x] Phase 0 + 0.5 + Phase 4 (all 4 themes shipped, cross-device
       persistence via 0011 user_tracks)
 - [x] Phase 1.5 UI stub (EmailAccounts component)
-- [ ] CV-profile new ask tasks 7–9 (waits on B's 1–6)
+- [x] CV-profile new ask tasks 7–9 (round 9 — `8a437e9`,
+      `CvUploadInline` now persists via `setProfileFromAnalysis`,
+      `/profile` Section 03 renders live skills chips,
+      `initProfileFromSupabase` runs on mount, smoke verified)
 - [ ] Phase 3 deep — `/jobs` standalone (rebuild as `<RoleGrid />` +
       `<FilterBar />` importing `lib/*` directly, no
       `<CareerBuddy rolesOnly />` mount). Unblocked since B shipped
@@ -200,6 +203,25 @@ proceeds with 7–9 immediately on top.
   `6982329` (now in `src/lib/types.ts` + `src/lib/state.ts`).
 
 ## Last sync
+
+- 2026-05-10 late evening (round 9) — A wired the UI half of the
+  CV-profile-Supabase ask (tasks 7–9). Commits pushed:
+  - `8a437e9` feat(profile): wire Section 03 Skills + Supabase
+    persistence via `setProfileFromAnalysis`
+  `CvUploadInline.tsx` now `await setProfileFromAnalysis(analysis,
+  filename)` instead of direct `mergeAnalysisIntoState +
+  saveCareerBuddyState`. `src/routes/profile.tsx` Section 03 replaced
+  the Phase-1 placeholder card with a live skills list driven by
+  `useState<SkillEntry[]>`; empty state shows a Skills board CTA back
+  to `#cv-upload`; populated state shows chips with name + level +
+  years. `initProfileFromSupabase()` runs on profile mount so a CV
+  uploaded on another device repopulates the page without re-upload.
+  `bunx tsc --noEmit` clean; vitest 260 passing; `bun run build:dev`
+  green; live deploy returned HTTP/2 200 after push. **Coral hero
+  photo fix from `a8cd7f5` (B's smoke commit) confirmed rendering
+  live on `/profile?theme=coral` + `/?theme=coral`.** A now idle
+  pending Phase 3 jobs-extraction, Phase 1 voice input, Phase 2
+  floating Buddy, or another user ask.
 
 - 2026-05-10 late evening (round 8 wrap) — B also shipped lower-
   priority tasks 7 + 9 (TS fix `feda357`, smoke-routes `a8cd7f5`).
