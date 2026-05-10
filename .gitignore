@@ -29,6 +29,9 @@ __pycache__/
 # Workplans (gitignored per global convention)
 WORKPLAN-*.md
 
+# Classify audit CSVs (per-run dry-run + write logs)
+backend/audit/
+
 # ============================================================
 # Frontend (TanStack Start + Vite + Cloudflare Workers)
 # ============================================================
