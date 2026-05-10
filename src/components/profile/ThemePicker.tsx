@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 
-import { useTheme, type ThemeName } from "@/lib/cinema-theme";
+import { persistTheme, useTheme, type ThemeName } from "@/lib/cinema-theme";
 import { cn } from "@/lib/utils";
 
 /**
@@ -72,6 +72,10 @@ export function ThemePicker() {
     } catch {
       /* ignore */
     }
+    // Cross-device persistence via Supabase user_tracks (migration 0011).
+    // Fire-and-forget — localStorage is the canonical store while
+    // offline and the upsert swallows network failures internally.
+    void persistTheme(id);
   }
 
   return (

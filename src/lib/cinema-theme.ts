@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { supabase } from "@/integrations/supabase/client";
+
 /**
  * Cinema theme registry — single source of truth for which themes
  * exist + which photography goes with each. Keep in sync with
@@ -111,4 +113,72 @@ export function usePhoto(surface: PhotoSurface = "overview", theme?: ThemeName):
 /** Read the URL string for a theme + surface without subscribing. */
 export function photoFor(theme: ThemeName, surface: PhotoSurface): string {
   return PHOTOS[theme]?.[surface] ?? PHOTOS.sage[surface];
+}
+
+/* ─── Supabase persistence — `user_tracks` (migration 0011) ───
+ *
+ * Single-user-app shape: one row with `user_id IS NULL`. Multi-tenant
+ * mode flips the where-clause to user_id = auth.uid() once we have
+ * Supabase auth. The table's COALESCE-based unique index allows the
+ * upsert pattern below to behave correctly without an auth context.
+ *
+ * Generated supabase/types.ts hasn't been regenerated since
+ * migration 0011 — we type the rows locally to keep the strict
+ * client happy until the next regen.
+ */
+
+type UserTrackRow = {
+  id?: string;
+  user_id: string | null;
+  track_primary: ThemeName;
+  track_secondary: string[];
+  updated_at?: string;
+};
+
+/**
+ * Fetch the persisted theme for the current user (single-user app:
+ * the row where `user_id IS NULL`). Returns `null` if no row exists,
+ * the table doesn't exist yet, or the network call fails — in all
+ * three cases the caller should fall back to localStorage / "sage".
+ */
+export async function fetchPersistedTheme(): Promise<ThemeName | null> {
+  try {
+    const { data, error } = await supabase
+      .from("user_tracks" as never)
+      .select("track_primary")
+      .is("user_id", null)
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return null;
+    const row = data as Pick<UserTrackRow, "track_primary">;
+    return isTheme(row.track_primary) ? row.track_primary : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Upsert the theme for the current user. Single-user app passes
+ * `user_id: null`; the COALESCE unique index keeps it idempotent.
+ * Failures swallow — UI already wrote localStorage so the next
+ * page load still picks up the right theme even if the network
+ * round-trip lost.
+ */
+export async function persistTheme(
+  theme: ThemeName,
+  trackSecondary: string[] = [],
+): Promise<void> {
+  try {
+    const row: UserTrackRow = {
+      user_id: null,
+      track_primary: theme,
+      track_secondary: trackSecondary,
+      updated_at: new Date().toISOString(),
+    };
+    await supabase
+      .from("user_tracks" as never)
+      .upsert(row as never, { onConflict: "user_id", ignoreDuplicates: false });
+  } catch {
+    /* ignore — localStorage is the canonical store while offline */
+  }
 }

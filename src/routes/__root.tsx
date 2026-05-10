@@ -12,6 +12,7 @@ import {
 import appCss from "../styles.css?url";
 import { Nav } from "@/components/Nav";
 import { PromoBar, SiteFooter } from "@/components/cinema";
+import { fetchPersistedTheme } from "@/lib/cinema-theme";
 
 function NotFoundComponent() {
   return (
@@ -144,12 +145,48 @@ function RootComponent() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const theme = readThemeFromUrl();
-    document.documentElement.setAttribute("data-theme", theme);
+    // Resolution order: ?theme= URL param > localStorage > Supabase
+    // user_tracks > "sage" default. URL param takes precedence so a
+    // shareable link still wins. Localstorage is the fast-path
+    // canonical store; Supabase is the cross-device hydration that
+    // only fires when the device has no prior choice on record.
+    const fromUrlOrStorage = readThemeFromUrl();
+    document.documentElement.setAttribute("data-theme", fromUrlOrStorage);
     try {
-      window.localStorage.setItem("career-buddy-theme-v1", theme);
+      window.localStorage.setItem("career-buddy-theme-v1", fromUrlOrStorage);
     } catch {
       /* ignore */
+    }
+
+    // Background-hydrate from Supabase only on first device-visit
+    // (no localStorage value pre-existed). Caller code already wrote
+    // the URL/default value above; if Supabase has a different
+    // persisted theme, swap to it now.
+    const hadStorage = (() => {
+      try {
+        return !!window.localStorage.getItem("career-buddy-theme-prev-seen-v1");
+      } catch {
+        return false;
+      }
+    })();
+    if (!hadStorage) {
+      void fetchPersistedTheme().then((persisted) => {
+        if (!persisted) return;
+        document.documentElement.setAttribute("data-theme", persisted);
+        try {
+          window.localStorage.setItem("career-buddy-theme-v1", persisted);
+        } catch {
+          /* ignore */
+        }
+      });
+      try {
+        window.localStorage.setItem(
+          "career-buddy-theme-prev-seen-v1",
+          new Date().toISOString(),
+        );
+      } catch {
+        /* ignore */
+      }
     }
   }, []);
 
