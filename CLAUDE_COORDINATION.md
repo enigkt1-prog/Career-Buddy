@@ -139,8 +139,14 @@ proceeds with 7–9 immediately on top.
       DraftModal / ApplicationsTracker / ApplicationRow / AddAppModal /
       ProfileCard / EditProfileModal / InsightsPanel) — UI session
       decides when to start; B follows with RTL tests per pattern.
-- [ ] Voice input (Web Speech API) — Phase 1 of cinema-personalisation
-      workplan
+- [x] Voice input (Web Speech API) — Phase 1 (round 10/11 —
+      `2adfd52` bundled the diff under a misleading
+      "round-10 complete" coord subject; voice work is shipped:
+      new `src/components/voice/VoiceMic.tsx`, wired into
+      `src/routes/buddy.tsx` chat input + `CvUploadInline.tsx`
+      paste textarea, `voice-mic-pulse` reduced-motion-safe
+      animation in `cinema.css`, graceful fallback when
+      `window.SpeechRecognition` is missing)
 - [ ] Floating Buddy widget (bottom-right bubble + side panel) —
       Phase 2
 - [ ] Skills probe + voice everywhere — Phase 6
@@ -205,6 +211,32 @@ proceeds with 7–9 immediately on top.
   `6982329` (now in `src/lib/types.ts` + `src/lib/state.ts`).
 
 ## Last sync
+
+- 2026-05-10 night (round 11 — A) — Phase 1 voice input shipped.
+  New `src/components/voice/VoiceMic.tsx` wraps the Web Speech API
+  (`window.SpeechRecognition` / `webkitSpeechRecognition`) with
+  idle / listening / unsupported render states; the disabled
+  fallback renders a `MicOff` icon with a tooltip explaining
+  browser support (Chrome / Edge / Safari 14.1+ only). Mounted on
+  `src/routes/buddy.tsx` next to Send (appends transcript to the
+  composer input) and on `src/components/profile/CvUploadInline.tsx`
+  inside the paste textarea (top-right). Reduced-motion-safe
+  `voice-mic-pulse` keyframes added to `src/styles/cinema.css`. No
+  external deps, no API cost. Section 03 "Speak instead (Phase 1)"
+  placeholder kept untouched on purpose — that wires up in Phase 6
+  (skill probe). **Subject-line flag (third occurrence):** the
+  voice diff landed inside commit `2adfd52` titled "docs(coord):
+  round-10 complete — lazy-chunks shipped" rather than a dedicated
+  `feat(voice): ...` commit, because the round-10-wrap commit
+  swept up A's staged voice changes at git-add time. Content is
+  correct; only the subject misleads. **Pattern alert:** this is
+  now the third bundle (a8cd7f5 swept coral photo fix into the
+  smoke-routes commit; 1ed7033 swept B's RTL tests into the
+  session-D coord-register commit; 2adfd52 swept A's voice
+  components into the round-10-complete coord commit). Recommend
+  every session run `git status -s | grep -v '^??'` before `git
+  add` and pass explicit file paths instead of `git add .` or
+  `git add -A`. No revert needed for any of the three.
 
 - 2026-05-10 night (round 10 — B partial) — B shipped RTL test
   coverage for the round-9 components: `src/routes/profile.test.tsx`
