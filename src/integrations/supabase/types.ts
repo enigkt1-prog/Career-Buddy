@@ -240,6 +240,66 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profile: {
+        Row: {
+          created_at: string
+          cv_filename: string | null
+          cv_fit_score: number | null
+          cv_summary: string | null
+          education: Json
+          headline: string | null
+          id: string
+          location_preferences: string[]
+          name: string | null
+          skills: Json
+          summary: string | null
+          target_geo: string | null
+          target_role: string | null
+          target_role_categories: string[]
+          updated_at: string
+          user_id: string | null
+          work_history: Json
+        }
+        Insert: {
+          created_at?: string
+          cv_filename?: string | null
+          cv_fit_score?: number | null
+          cv_summary?: string | null
+          education?: Json
+          headline?: string | null
+          id?: string
+          location_preferences?: string[]
+          name?: string | null
+          skills?: Json
+          summary?: string | null
+          target_geo?: string | null
+          target_role?: string | null
+          target_role_categories?: string[]
+          updated_at?: string
+          user_id?: string | null
+          work_history?: Json
+        }
+        Update: {
+          created_at?: string
+          cv_filename?: string | null
+          cv_fit_score?: number | null
+          cv_summary?: string | null
+          education?: Json
+          headline?: string | null
+          id?: string
+          location_preferences?: string[]
+          name?: string | null
+          skills?: Json
+          summary?: string | null
+          target_geo?: string | null
+          target_role?: string | null
+          target_role_categories?: string[]
+          updated_at?: string
+          user_id?: string | null
+          work_history?: Json
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           background: string | null
