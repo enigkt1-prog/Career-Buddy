@@ -91,26 +91,76 @@
 /* ── Theme: onyx ──
  * Deep navy + warm gold accents + dark-mirror glass. IB / PE /
  * Late-stage VC persona — quiet luxury, glass-office-at-dusk vibe.
- * Page bg stays light (cool off-white) so prose remains readable;
- * accents (moss / pine / meadow) carry the Onyx mood via dark-navy
- * CTA fills + gold underlines. */
+ * Page bg is a cool blue-grey (not bright white) so the whole page
+ * reads "executive boardroom" rather than "morning office"; accents
+ * (moss / pine / meadow) carry the Onyx mood via dark-navy CTA
+ * fills + gold underlines. */
 [data-theme="onyx"] {
-  --cinema-moss:      oklch(0.20 0.040 250);
+  --cinema-moss:      oklch(0.18 0.040 250);
   --cinema-pine:      oklch(0.32 0.060 245);
   --cinema-sage:      oklch(0.55 0.050 250);
-  --cinema-mint:      oklch(0.83 0.040  80);
-  --cinema-mist:      oklch(0.96 0.012 250);
-  --cinema-cream:     oklch(0.985 0.008 80);
-  --cinema-meadow:    oklch(0.78 0.110  80);
-  --cinema-ink:       oklch(0.15 0.040 250);
-  --cinema-ink-soft:  oklch(0.36 0.025 250);
-  --cinema-ink-mute:  oklch(0.55 0.018 250);
+  --cinema-mint:      oklch(0.83 0.045  80);
+  --cinema-mist:      oklch(0.91 0.018 250);
+  --cinema-cream:     oklch(0.96 0.020  80);
+  --cinema-meadow:    oklch(0.78 0.115  80);
+  --cinema-ink:       oklch(0.13 0.040 250);
+  --cinema-ink-soft:  oklch(0.34 0.025 250);
+  --cinema-ink-mute:  oklch(0.52 0.018 250);
 
-  --glass-mist:         rgba(245, 248, 252, 0.74);
+  --glass-mist:         rgba(220, 228, 240, 0.75);
   --glass-sage:         rgba(201, 169, 107, 0.55);
-  --glass-dark:         rgba(12,  19,  32,  0.66);
+  --glass-dark:         rgba(10, 16, 28,  0.70);
   --glass-stroke-light: rgba(255, 255, 255, 0.55);
-  --glass-stroke-dark:  rgba(0, 0, 0, 0.22);
+  --glass-stroke-dark:  rgba(0, 0, 0, 0.25);
+}
+
+/* ── Theme: slate ──
+ * Cool monochrome — McKinsey-quiet. Consulting persona (MBB / Tier-2
+ * / boutique strategy). Near-blacks, warm greys, pure off-white.
+ * One signature accent: a corporate blue used sparingly on hover +
+ * underline. Reads "structured, precise, no flourish". */
+[data-theme="slate"] {
+  --cinema-moss:      oklch(0.18 0.005 250);
+  --cinema-pine:      oklch(0.36 0.005 250);
+  --cinema-sage:      oklch(0.56 0.008 250);
+  --cinema-mint:      oklch(0.86 0.005 250);
+  --cinema-mist:      oklch(0.96 0.003 250);
+  --cinema-cream:     oklch(0.99 0.002   0);
+  --cinema-meadow:    oklch(0.55 0.110 240);
+  --cinema-ink:       oklch(0.13 0.005 250);
+  --cinema-ink-soft:  oklch(0.32 0.005 250);
+  --cinema-ink-mute:  oklch(0.55 0.005 250);
+
+  --glass-mist:         rgba(248, 250, 252, 0.72);
+  --glass-sage:         rgba(220, 224, 230, 0.55);
+  --glass-dark:         rgba(15,  15,  18,  0.65);
+  --glass-stroke-light: rgba(255, 255, 255, 0.55);
+  --glass-stroke-dark:  rgba(0, 0, 0, 0.18);
+}
+
+/* ── Theme: coral ──
+ * Warm peach + bright coral accent + soft cream. Creative / Brand /
+ * Product-at-D2C persona. Reads "friendly, confident, designer-y".
+ * Deep terracotta CTA fills + bright coral meadow accent for play.
+ * Photography pairs with golden-hour interiors, rather than the
+ * Sage forest / Onyx office-at-dusk direction. */
+[data-theme="coral"] {
+  --cinema-moss:      oklch(0.28 0.080  30);
+  --cinema-pine:      oklch(0.45 0.100  35);
+  --cinema-sage:      oklch(0.70 0.060  35);
+  --cinema-mint:      oklch(0.88 0.050  40);
+  --cinema-mist:      oklch(0.96 0.020  40);
+  --cinema-cream:     oklch(0.985 0.012 50);
+  --cinema-meadow:    oklch(0.72 0.180  30);
+  --cinema-ink:       oklch(0.18 0.025  40);
+  --cinema-ink-soft:  oklch(0.38 0.020  40);
+  --cinema-ink-mute:  oklch(0.58 0.015  40);
+
+  --glass-mist:         rgba(252, 240, 232, 0.72);
+  --glass-sage:         rgba(232, 180, 155, 0.55);
+  --glass-dark:         rgba(45,  25,  18,  0.65);
+  --glass-stroke-light: rgba(255, 255, 255, 0.55);
+  --glass-stroke-dark:  rgba(80, 30, 15, 0.20);
 }
 
 /*

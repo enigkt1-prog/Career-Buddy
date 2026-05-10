@@ -11,6 +11,7 @@ import {
   SectionDivider,
 } from "@/components/cinema";
 import { CvUploadInline } from "@/components/profile/CvUploadInline";
+import { usePhoto } from "@/lib/cinema-theme";
 import { TRACKS } from "@/lib/tracks";
 
 export const Route = createFileRoute("/profile")({
@@ -27,9 +28,8 @@ export const Route = createFileRoute("/profile")({
   }),
 });
 
-const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=2400&q=80";
-
+// Hero image follows the active cinema theme — see src/lib/cinema-theme.ts.
+//
 // TRACKS now lives in src/lib/tracks.ts (single source of truth shared
 // with future /jobs filter UI). See lib/tracks.ts for type + experience
 // window helpers.
@@ -43,6 +43,7 @@ const EXPERIENCE_BUCKETS = [
 ];
 
 function ProfilePage() {
+  const heroImage = usePhoto("profile");
   const [yearsBucket, setYearsBucket] = useState<string | null>(null);
   const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
 
@@ -82,7 +83,7 @@ function ProfilePage() {
   return (
     <div className="bg-cinema-cream text-cinema-ink">
       <CinematicHero
-        image={HERO_IMAGE}
+        image={heroImage}
         altText="Profile — modern workspace at golden hour, the buddy that knows where you want to go"
         eyebrow="Profile"
         scrollVh={10}

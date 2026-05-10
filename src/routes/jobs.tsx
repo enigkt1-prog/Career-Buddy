@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import CareerBuddy from "@/components/CareerBuddy";
 import { CinematicHero, SectionDivider } from "@/components/cinema";
+import { usePhoto } from "@/lib/cinema-theme";
 
 export const Route = createFileRoute("/jobs")({
   component: JobsPage,
@@ -17,9 +18,6 @@ export const Route = createFileRoute("/jobs")({
   }),
 });
 
-const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=2400&q=80";
-
 /**
  * Phase 0.5b minimum-viable jobs page. Renders CareerBuddy with the
  * `rolesOnly` flag — same role grid + filters + sort + RoleCards as
@@ -28,11 +26,12 @@ const HERO_IMAGE =
  * /jobs and / can render it without coupling to CareerBuddy state.
  */
 function JobsPage() {
+  const heroImage = usePhoto("jobs");
   return (
     <div className="bg-cinema-cream text-cinema-ink">
       <CinematicHero
-        image={HERO_IMAGE}
-        altText="All live jobs — modern coworking light, every operator role in one feed"
+        image={heroImage}
+        altText="All live jobs — workspace photography that follows your selected track"
         eyebrow="All live jobs"
         scrollVh={5}
         headline={<>Every role we found.</>}

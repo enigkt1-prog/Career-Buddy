@@ -1,18 +1,16 @@
 import { cn } from "@/lib/utils";
+import { usePhoto } from "@/lib/cinema-theme";
 
 import { GlassCard, GlassCardInner } from "./GlassCard";
 
 type Props = {
-  /** Optional backdrop image — same warm-cinematic vocabulary as hero. */
+  /**
+   * Optional backdrop image — overrides the theme-aware default.
+   * Default follows the active cinema theme via `usePhoto("footer")`.
+   */
   image?: string;
   className?: string;
 };
-
-// Modern coworking interior — calm, plant-forward, cool light.
-// Phase 0.5 swap from forest sun-rays, which felt off-brand for a
-// career app.
-const FOOTER_IMAGE_DEFAULT =
-  "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=2400&q=80";
 
 const PAGES = [
   { href: "/", label: "Overview" },
@@ -40,7 +38,9 @@ const QUIET_BY_DEFAULT = [
  * (cinematic photo + four warm-glass cards floating over). Used at
  * the bottom of every page so the whole app feels like one piece.
  */
-export function SiteFooter({ image = FOOTER_IMAGE_DEFAULT, className }: Props) {
+export function SiteFooter({ image, className }: Props) {
+  const themedImage = usePhoto("footer");
+  const finalImage = image ?? themedImage;
   return (
     <section
       className={cn("relative w-full overflow-hidden", className)}
@@ -49,7 +49,7 @@ export function SiteFooter({ image = FOOTER_IMAGE_DEFAULT, className }: Props) {
       <div
         className="absolute inset-0 bg-cinema-moss"
         style={{
-          backgroundImage: `url("${image}")`,
+          backgroundImage: `url("${finalImage}")`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",

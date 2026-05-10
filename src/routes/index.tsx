@@ -6,6 +6,7 @@ import {
   PillLink,
   SectionDivider,
 } from "@/components/cinema";
+import { usePhoto } from "@/lib/cinema-theme";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -21,18 +22,15 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-// Cinematic photography — modern workspace at golden hour. Urban /
-// office direction (Phase 0.5 swap from forest, which felt off-brand
-// for a career app).
-const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=2400&q=80";
-
 function Index() {
+  // Hero image follows the active cinema theme (Sage = coworking,
+  // Onyx = skyscrapers, Slate = monochrome boardroom, Coral = studio).
+  const heroImage = usePhoto("overview");
   return (
     <div className="bg-cinema-cream text-cinema-ink">
       <CinematicHero
-        image={HERO_IMAGE}
-        altText="Overview — soft pine-forest light, the buddy that walks beside you"
+        image={heroImage}
+        altText="Overview — workspace photography that follows your selected track"
         eyebrow="Overview"
         scrollVh={10}
         headline={<>Your operator-track feed.</>}

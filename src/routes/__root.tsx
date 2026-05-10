@@ -100,9 +100,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 // Cinema theme registry — keep in sync with the [data-theme="..."]
-// blocks in src/styles/cinema.css. Sage is the default; everything
-// else is opt-in via ?theme=onyx (Phase 4 prototype).
-const KNOWN_THEMES = new Set(["sage", "onyx"]);
+// blocks in src/styles/cinema.css. Sage is the default; the rest
+// are opt-in via ?theme=<name>:
+//   sage  — Startup early-stage / Operator-track (default).
+//   onyx  — IB / PE / Late-stage VC; navy + gold; office-at-dusk.
+//   slate — Consulting (MBB / Tier-2); cool monochrome + corporate-blue.
+//   coral — Creative / Brand / Product-at-D2C; warm peach + coral.
+const KNOWN_THEMES = new Set(["sage", "onyx", "slate", "coral"]);
 
 function readThemeFromUrl(): string {
   if (typeof window === "undefined") return "sage";
