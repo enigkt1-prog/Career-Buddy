@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Send, Sparkles } from "lucide-react";
 
 import { GlassCard } from "@/components/cinema";
+import { VoiceMic } from "@/components/voice/VoiceMic";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/buddy")({
@@ -320,14 +321,23 @@ function ChatPage() {
               disabled={quotaActive || loading}
               className="flex-1 border border-cinema-mint rounded-glass px-4 py-3 text-base bg-white/80 resize-none focus:outline-none focus:ring-2 focus:ring-cinema-sage disabled:bg-cinema-mist/60 text-cinema-ink"
             />
-            <button
-              type="submit"
-              disabled={!input.trim() || loading || quotaActive}
-              className="pill-cta disabled:opacity-40 self-stretch"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              Send
-            </button>
+            <div className="flex flex-col gap-2 self-stretch justify-end">
+              <VoiceMic
+                onTranscript={(text) =>
+                  setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text))
+                }
+                disabled={loading || quotaActive}
+                label="Dictate to Buddy"
+              />
+              <button
+                type="submit"
+                disabled={!input.trim() || loading || quotaActive}
+                className="pill-cta disabled:opacity-40"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Send
+              </button>
+            </div>
           </form>
 
           <div className="mt-4 flex items-center justify-between gap-4">

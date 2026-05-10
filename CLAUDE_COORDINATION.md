@@ -223,8 +223,16 @@ proceeds with 7–9 immediately on top.
   subject is the only artefact. Same class of bundle as `a8cd7f5`
   (round-8 cinema-theme sweep). No revert needed.
 
-  Lazy-chunks Playwright spec (round-10 task B) still pending. Will
-  ship next as a clean `test(e2e): ...` commit.
+  Lazy-chunks Playwright spec shipped in `42c2aee` — 4 new e2e cases
+  (3 route-loads-its-chunk + 1 anti-leak on `/`) running against the
+  live Cloudflare Worker by default; override via
+  `PLAYWRIGHT_BASE_URL`. Total Playwright suite now 5 passing.
+  Round-10 task B done. **Local vite preview pipeline broken**
+  (TanStack Start + cloudflare-vite-plugin emit
+  `dist/server/assets/server-*.js` with a hash but the preview
+  server-plugin imports the unhashed path) — surfaced while wiring
+  webServer; tracked as a follow-up, lazy-chunks routes around it
+  via the live URL.
 
 - 2026-05-10 late evening (round 9) — A wired the UI half of the
   CV-profile-Supabase ask (tasks 7–9). Commits pushed:

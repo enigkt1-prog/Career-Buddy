@@ -5,6 +5,7 @@ import { extractCvText } from "@/lib/cv-parser";
 import { type CvAnalysisResponse } from "@/lib/cv-storage";
 import { setProfileFromAnalysis } from "@/lib/profile-store";
 import { supabase } from "@/integrations/supabase/client";
+import { VoiceMic } from "@/components/voice/VoiceMic";
 
 /**
  * Inline CV upload card. Phase 0.5 — replaces the previous "Upload on
@@ -116,13 +117,25 @@ export function CvUploadInline({ onAnalysed }: Props = {}) {
         {filename && <span className="text-cinema-caption">{filename}</span>}
       </div>
 
-      <textarea
-        rows={4}
-        className="w-full border border-cinema-mint rounded-glass p-3 text-base font-mono bg-white/80 text-cinema-ink resize-y focus:outline-none focus:ring-2 focus:ring-cinema-sage"
-        placeholder="…or paste CV text here, then click Analyse"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-      />
+      <div className="relative">
+        <textarea
+          rows={4}
+          className="w-full border border-cinema-mint rounded-glass p-3 pr-14 text-base font-mono bg-white/80 text-cinema-ink resize-y focus:outline-none focus:ring-2 focus:ring-cinema-sage"
+          placeholder="…or paste CV text here, then click Analyse"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <div className="absolute top-2 right-2">
+          <VoiceMic
+            size="sm"
+            onTranscript={(t) =>
+              setText((prev) => (prev.trim() ? `${prev.trim()} ${t}` : t))
+            }
+            disabled={phase === "analysing"}
+            label="Dictate CV text"
+          />
+        </div>
+      </div>
       <div>
         <button
           type="button"
