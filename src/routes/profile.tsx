@@ -12,6 +12,13 @@ import {
 } from "@/components/cinema";
 import { CvUploadInline } from "@/components/profile/CvUploadInline";
 import { usePhoto } from "@/lib/cinema-theme";
+import {
+  loadSelectedTracks,
+  loadYearsBucket,
+  setSelectedTracks as persistSelectedTracks,
+  setYearsBucket as persistYearsBucket,
+  type YearsBucketId,
+} from "@/lib/profile-store";
 import { TRACKS } from "@/lib/tracks";
 
 export const Route = createFileRoute("/profile")({
@@ -44,40 +51,25 @@ const EXPERIENCE_BUCKETS = [
 
 function ProfilePage() {
   const heroImage = usePhoto("profile");
-  const [yearsBucket, setYearsBucket] = useState<string | null>(null);
-  const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
+  const [yearsBucket, setYearsBucketState] = useState<YearsBucketId | null>(null);
+  const [selectedTracks, setSelectedTracksState] = useState<string[]>([]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const rawTracks = localStorage.getItem("career-buddy-tracks-v1");
-      if (rawTracks) setSelectedTracks(JSON.parse(rawTracks) as string[]);
-      const rawYears = localStorage.getItem("career-buddy-years-bucket-v1");
-      if (rawYears) setYearsBucket(rawYears);
-    } catch {
-      /* ignore */
-    }
+    setSelectedTracksState(loadSelectedTracks());
+    setYearsBucketState(loadYearsBucket());
   }, []);
 
   function toggleTrack(id: string) {
     const next = selectedTracks.includes(id)
       ? selectedTracks.filter((t) => t !== id)
       : [...selectedTracks, id];
-    setSelectedTracks(next);
-    try {
-      localStorage.setItem("career-buddy-tracks-v1", JSON.stringify(next));
-    } catch {
-      /* ignore */
-    }
+    setSelectedTracksState(next);
+    persistSelectedTracks(next);
   }
 
   function setYears(id: string) {
-    setYearsBucket(id);
-    try {
-      localStorage.setItem("career-buddy-years-bucket-v1", id);
-    } catch {
-      /* ignore */
-    }
+    setYearsBucketState(id as YearsBucketId);
+    persistYearsBucket(id as YearsBucketId);
   }
 
   return (
