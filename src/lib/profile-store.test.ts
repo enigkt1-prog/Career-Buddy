@@ -30,6 +30,7 @@ import {
   initProfileFromSupabase,
   loadSelectedTracks,
   loadYearsBucket,
+  migrateLocalStorageToSupabase,
   setProfileFromAnalysis,
   setSelectedTracks,
   setYearsBucket,
@@ -448,5 +449,100 @@ describe("initProfileFromSupabase", () => {
     const state = loadCareerBuddyState();
     expect(state.profile?.name).toBe("Local Name");
     expect(state.profile?.skills).toEqual([{ name: "kept" }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// migrateLocalStorageToSupabase
+// ---------------------------------------------------------------------------
+
+describe("migrateLocalStorageToSupabase", () => {
+  beforeEach(() => {
+    mockUpsert.mockClear().mockResolvedValue({ data: null, error: null });
+    mockGetUser
+      .mockReset()
+      .mockResolvedValue({ data: { user: { id: "u-test" } }, error: null });
+  });
+
+  test("no-op when anonymous", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null });
+    const ran = await migrateLocalStorageToSupabase();
+    expect(ran).toEqual([]);
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+
+  test("upserts profile + tracks when localStorage has both", async () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        profile: { cv_analyzed: true, name: "Local", skills: [{ name: "Py" }] },
+      }),
+    );
+    localStorage.setItem(
+      "career-buddy-tracks-v1",
+      JSON.stringify(["bizops", "strategy"]),
+    );
+    localStorage.setItem("career-buddy-years-bucket-v1", "3to5");
+
+    const ran = await migrateLocalStorageToSupabase();
+    expect(ran).toContain("profile");
+    expect(ran).toContain("tracks");
+    expect(mockUpsert).toHaveBeenCalledTimes(2);
+    // Verify both calls scoped to user_id = "u-test".
+    for (const call of mockUpsert.mock.calls) {
+      expect(call[0].user_id).toBe("u-test");
+    }
+  });
+
+  test("skips classes already flagged migrated", async () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ profile: { cv_analyzed: true, name: "Local" } }),
+    );
+    localStorage.setItem("career-buddy-migrated-u-test-profile", "1");
+    localStorage.setItem("career-buddy-migrated-u-test-tracks", "1");
+    const ran = await migrateLocalStorageToSupabase();
+    expect(ran).toEqual([]);
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+
+  test("marks class migrated even when nothing to migrate", async () => {
+    // No profile, no tracks → both classes marked done (no work).
+    const ran = await migrateLocalStorageToSupabase();
+    expect(ran).toEqual([]);
+    expect(localStorage.getItem("career-buddy-migrated-u-test-profile")).toBe("1");
+    expect(localStorage.getItem("career-buddy-migrated-u-test-tracks")).toBe("1");
+  });
+
+  test("multi-tab lock — second call within 30s no-ops", async () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ profile: { cv_analyzed: true, name: "Local" } }),
+    );
+    const first = await migrateLocalStorageToSupabase();
+    expect(first).toContain("profile");
+    mockUpsert.mockClear();
+    // Reset the per-class flag so the second call would try again.
+    localStorage.removeItem("career-buddy-migrated-u-test-profile");
+    // Lock key is still hot — second call short-circuits.
+    const second = await migrateLocalStorageToSupabase();
+    expect(second).toEqual([]);
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+
+  test("upsert failure leaves flag unset → retried next time", async () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ profile: { cv_analyzed: true, name: "Local" } }),
+    );
+    mockUpsert.mockResolvedValueOnce({
+      data: null,
+      error: { message: "network down" },
+    });
+    const ran = await migrateLocalStorageToSupabase();
+    expect(ran).not.toContain("profile");
+    expect(
+      localStorage.getItem("career-buddy-migrated-u-test-profile"),
+    ).toBeNull();
   });
 });

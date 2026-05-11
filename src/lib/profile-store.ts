@@ -321,6 +321,168 @@ export async function initProfileFromSupabase(): Promise<void> {
   saveCareerBuddyState({ ...state, profile: next });
 }
 
+// ---------------------------------------------------------------------------
+// LocalStorage → Supabase migration (multi-user cutover).
+//
+// On first signed-in load, push any localStorage state that lives
+// only client-side up to the user's Supabase rows (post-0014 RLS
+// scoped). Idempotent per data-class via
+// `career-buddy-migrated-${uid}-${class}` flags. Multi-tab safe
+// via BroadcastChannel + a localStorage timestamp fallback for
+// browsers where BroadcastChannel is undefined (Safari private
+// browsing).
+// ---------------------------------------------------------------------------
+
+const MIGRATE_CHANNEL = "cb-migrate";
+const MIGRATE_LOCK_TTL_MS = 30_000;
+const MIGRATE_CLASSES = ["profile", "tracks"] as const;
+type MigrateClass = (typeof MIGRATE_CLASSES)[number];
+
+function flagKey(uid: string, cls: MigrateClass): string {
+  return `career-buddy-migrated-${uid}-${cls}`;
+}
+
+function lockKey(uid: string): string {
+  return `career-buddy-migrate-lock-${uid}`;
+}
+
+function classMigrated(uid: string, cls: MigrateClass): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return window.localStorage.getItem(flagKey(uid, cls)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markClassMigrated(uid: string, cls: MigrateClass): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(flagKey(uid, cls), "1");
+  } catch {
+    /* quota / SecurityError — swallow */
+  }
+}
+
+/**
+ * Claim the migration lock for `uid`. Returns true if WE own it,
+ * false if another tab does. Uses BroadcastChannel as primary
+ * signal + a localStorage timestamp fallback (auto-expires after
+ * MIGRATE_LOCK_TTL_MS). Idempotent upserts make this best-effort
+ * by design — even if two tabs race the upserts are no-ops.
+ */
+function tryClaimLock(uid: string): boolean {
+  if (typeof window === "undefined") return true;
+  const key = lockKey(uid);
+  try {
+    const raw = window.localStorage.getItem(key);
+    const now = Date.now();
+    if (raw) {
+      const ts = parseInt(raw, 10);
+      if (Number.isFinite(ts) && now - ts < MIGRATE_LOCK_TTL_MS) {
+        return false;
+      }
+    }
+    window.localStorage.setItem(key, String(now));
+  } catch {
+    /* private-browsing / quota → still attempt migration */
+  }
+  try {
+    if (typeof BroadcastChannel !== "undefined") {
+      const ch = new BroadcastChannel(MIGRATE_CHANNEL);
+      ch.postMessage({ uid, started: true });
+      ch.close();
+    }
+  } catch {
+    /* fallback path is the localStorage timestamp above */
+  }
+  return true;
+}
+
+/**
+ * On first signed-in load, migrate localStorage state to Supabase
+ * rows scoped to `auth.uid()`. Per-data-class idempotency flag so
+ * a failed class retries on next mount; success classes don't re-run.
+ *
+ * Returns the set of classes that ran this call (empty if no work
+ * needed / no session / lock held by another tab).
+ */
+export async function migrateLocalStorageToSupabase(): Promise<MigrateClass[]> {
+  const userId = await getCurrentUserId();
+  if (!userId) return [];
+  if (!tryClaimLock(userId)) return [];
+
+  const ran: MigrateClass[] = [];
+  const local = loadCareerBuddyState();
+  const profile = (local.profile ?? {}) as Profile;
+
+  // profile class — full Profile row upsert if local has any
+  // populated content + remote is empty (or older).
+  if (!classMigrated(userId, "profile")) {
+    const hasLocalProfile =
+      Boolean(profile.cv_analyzed) ||
+      Boolean(profile.name) ||
+      Boolean(profile.headline) ||
+      (Array.isArray(profile.skills) && profile.skills.length > 0) ||
+      (Array.isArray(profile.work_history) && profile.work_history.length > 0);
+    if (hasLocalProfile) {
+      try {
+        const row = profileToRow(profile, userId);
+        row.updated_at =
+          typeof profile.updated_at === "string"
+            ? profile.updated_at
+            : new Date().toISOString();
+        const { error } = await supabase
+          .from("user_profile" as never)
+          .upsert(row as never, { onConflict: "user_id", ignoreDuplicates: false });
+        if (!error) {
+          markClassMigrated(userId, "profile");
+          ran.push("profile");
+        }
+      } catch {
+        /* leave flag unset → retry next mount */
+      }
+    } else {
+      markClassMigrated(userId, "profile");
+    }
+  }
+
+  // tracks class — primary track + years bucket → user_tracks row.
+  if (!classMigrated(userId, "tracks")) {
+    const tracks = loadSelectedTracks();
+    const yearsBucket = loadYearsBucket();
+    if (tracks.length > 0 || yearsBucket !== null) {
+      try {
+        const trackPrimary = tracks[0];
+        const trackSecondary = tracks.slice(1);
+        if (trackPrimary) {
+          const row = {
+            user_id: userId,
+            track_primary: trackPrimary,
+            track_secondary: trackSecondary,
+            updated_at: new Date().toISOString(),
+          };
+          const { error } = await supabase
+            .from("user_tracks" as never)
+            .upsert(row as never, { onConflict: "user_id", ignoreDuplicates: false });
+          if (!error) {
+            markClassMigrated(userId, "tracks");
+            ran.push("tracks");
+          }
+        } else {
+          markClassMigrated(userId, "tracks");
+        }
+      } catch {
+        /* leave flag unset → retry next mount */
+      }
+    } else {
+      markClassMigrated(userId, "tracks");
+    }
+  }
+
+  return ran;
+}
+
 function parseTs(value: unknown): number | null {
   if (typeof value !== "string" || !value) return null;
   const t = Date.parse(value);
