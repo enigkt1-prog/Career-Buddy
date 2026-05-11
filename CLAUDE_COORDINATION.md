@@ -178,6 +178,10 @@ proceeds with 7–9 immediately on top.
       every other text input (Phase 1 hard-spec) deferred — Buddy
       composer + profile editor inputs would benefit but it's
       lower-priority polish vs the rest of the loop.
+- [x] Round-14 multi-user login UI lane — `/login` + AuthGate +
+      AuthPill + RootShell migrate hook + `/email-oauth-callback`
+      route + EmailAccounts Phase 1.6 wire (round 14, commits
+      `39535b4` + `6d0ec4b`).
 - [ ] Photo licensing audit (Unsplash Free → Unsplash+ or AI-generated
       production set)
 
@@ -239,6 +243,83 @@ proceeds with 7–9 immediately on top.
   `6982329` (now in `src/lib/types.ts` + `src/lib/state.ts`).
 
 ## Last sync
+
+- 2026-05-11 morning (round 14 — A) — login UI lane shipped.
+  Six tasks from B's round-13 sync ("Sync round 13 (B → A) — multi-
+  user cutover backend done, UI lane is yours") all done.
+
+  - `39535b4` feat(auth): round-14 login UI + AuthGate + AuthPill +
+    migrate hook + oauth callback. Files:
+    * `src/routes/login.tsx` — magic-link + Google OAuth, redirect-
+      if-signed-in. Cinema GlassPanel hero.
+    * `src/components/cinema/AuthGate.tsx` — client-side gate,
+      public paths `/`, `/login`, `/jobs`, `/email-oauth-callback`;
+      everything else redirects to /login when anonymous. Mounted
+      from `__root.tsx` RootComponent.
+    * `src/components/cinema/AuthPill.tsx` — logout pill in Nav,
+      shows truncated email + LogOut icon when signed in, "Sign in"
+      link to /login when anonymous. Wired into `src/components/Nav.tsx`.
+    * `src/routes/__root.tsx` — RootComponent runs
+      `migrateLocalStorageToSupabase()` once on first signed-in load
+      (idempotent per-data-class flag in profile-store).
+    * `src/routes/email-oauth-callback.tsx` — Phase 1.6 OAuth
+      callback. Reads `?code` + `?state` + `?provider` (default
+      gmail), invokes `email-oauth-callback` edge fn, redirects to
+      `/profile#email` on success.
+
+  - `6d0ec4b` feat(profile): EmailAccounts phase 1.6 OAuth wire.
+    Replaced the Phase 1.5 info-modal stub. Gmail / Outlook now
+    `supabase.functions.invoke("email-oauth-start", { body: { provider }})`
+    → window.location.href = authoriseUrl. 401 surfaces "please
+    sign in" with /login link. IMAP still placeholder modal (no
+    backend yet).
+
+  **Cross-territory bend (flagged):** `EmailAccounts.test.tsx` (B's
+  round-7 test file) was rewritten by A to keep the suite green
+  after the Phase 1.6 wire. Old asserted modal-on-every-click
+  against the Phase 1.5 stub. New asserts mocked
+  `supabase.functions.invoke` args + IMAP modal behaviour. B is
+  expected to expand coverage (auth-required surface, error
+  surface, redirect via window.location mock) in the next round.
+
+  Tests: 323 passing (327 before; -4 from the EmailAccounts test
+  rewrite, no other regressions). tsc clean. `bun run build:dev`
+  green. 2 commits ahead of origin, pending user push approval.
+
+  **Open items for B (next sync):**
+  - Expand RTL coverage for `/login` route (success / error /
+    redirect-if-signed-in branches) + `AuthGate` + `AuthPill` +
+    `/email-oauth-callback` route + the auth-required + error
+    surfaces on EmailAccounts.
+  - When user flips `PHASE_AUTH_REQUIRED=1` on the edge functions
+    (in Supabase dashboard), confirm `/login` round-trip end-to-end
+    and that /jobs anonymous-mode contract still holds.
+  - Microsoft / Outlook OAuth: still deferred? Decide whether to
+    hide the Outlook button until `OUTLOOK_OAUTH_*` env vars are
+    set, or keep it visible and let the 500 surface clean.
+
+  **Round-14 user product asks (captured 2026-05-11, post-auth):**
+  Full spec at
+  `/Users/troelsenigk/Startup_Ideation_Vault/01_Ideas/Career_Buddy_Agentic_Chat_And_CV_Dashboard.md`.
+  1. **Agentic Buddy chat** — Buddy must act on app state via NL
+     commands. e.g. "Ich habe mich nicht bei Paddle beworben" →
+     delete applications row. "Status auf interviewing" → update.
+     "Add an application: Anthropic Senior FE today" → insert.
+     Voice-in required (re-use VoiceMic). Brand-name STT disambig
+     ("Zoice" ≠ "Voice") via fuzzy-match vs entities + user's
+     apps. Confirm-pill before destructive ops. Needs new
+     tool-call layer on `supabase/functions/buddy-chat` (B
+     territory). ~1-2 days.
+  2. **CV screening → radar dashboard** — replace the text-dump
+     output of `analyze-cv` with structured strengths / weaknesses
+     / gaps + spider-web radar chart (6-8 axes: seniority, hard
+     skills, leadership, breadth, recency, soft skills…).
+     Strength/weakness items click-through → `open-buddy` event
+     with prefill ("How do I close my gap on X?") — re-uses
+     round-13 skills-probe pattern. ~half-day UI + analyze-cv
+     schema bump.
+
+  Both deferred until login + AuthGate land in production.
 
 - 2026-05-10 night (round 13 — A) — A shipped four big back-to-back
   pushes covering the remaining A backlog:
