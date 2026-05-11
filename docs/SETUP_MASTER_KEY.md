@@ -1,10 +1,12 @@
-# Master-Key Setup — OAuth Token Encryption
+# Master-Key Setup — OAuth Token Encryption (Supabase Vault)
 
-The `app.oauth_master_key` Postgres GUC encrypts OAuth refresh
-tokens (Gmail / Outlook) at rest. Generate once, set once, store
-nowhere else (rotation = re-encrypt every row).
+The OAuth refresh tokens (Gmail / Outlook) are encrypted at rest
+via pgcrypto's `pgp_sym_encrypt`. The encryption key lives in
+**Supabase Vault** (`vault.secrets` table) rather than a Postgres
+GUC, because the Supabase managed Postgres role doesn't have
+SUPERUSER (needed for `ALTER DATABASE ... SET`).
 
-## Step 1 — generate key (or use the one ready-baked below)
+## Step 1 — generate key
 
 ```bash
 openssl rand -hex 32
@@ -12,66 +14,98 @@ openssl rand -hex 32
 
 Output: 64 hex chars.
 
-## Step 2 — apply
+## Step 2 — store in vault + rebind functions
 
 Supabase Dashboard → SQL Editor → New query → paste + Run:
 
 ```sql
-ALTER DATABASE postgres SET app.oauth_master_key TO 'PASTE-64-CHAR-HEX-HERE';
-```
+CREATE EXTENSION IF NOT EXISTS supabase_vault;
 
-Result: `Success. No rows returned.`
+SELECT vault.create_secret(
+  'PASTE-64-CHAR-HEX-HERE',
+  'oauth_master_key',
+  'OAuth refresh-token encryption key'
+);
+
+CREATE OR REPLACE FUNCTION encrypt_oauth_token(plaintext text) RETURNS bytea LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE master_key text;
+BEGIN
+  SELECT decrypted_secret INTO master_key FROM vault.decrypted_secrets WHERE name = 'oauth_master_key' LIMIT 1;
+  IF master_key IS NULL OR length(master_key) < 32 THEN
+    RAISE EXCEPTION 'oauth_master_key vault secret missing or too short';
+  END IF;
+  IF plaintext IS NULL OR plaintext = '' THEN
+    RAISE EXCEPTION 'encrypt_oauth_token called with empty plaintext';
+  END IF;
+  RETURN pgp_sym_encrypt(plaintext, master_key);
+END $$;
+
+CREATE OR REPLACE FUNCTION decrypt_oauth_token(ciphertext bytea) RETURNS text LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE master_key text; plaintext text;
+BEGIN
+  SELECT decrypted_secret INTO master_key FROM vault.decrypted_secrets WHERE name = 'oauth_master_key' LIMIT 1;
+  IF master_key IS NULL OR length(master_key) < 32 THEN
+    RAISE EXCEPTION 'oauth_master_key vault secret missing or too short';
+  END IF;
+  IF ciphertext IS NULL THEN RETURN NULL; END IF;
+  BEGIN
+    plaintext := pgp_sym_decrypt(ciphertext, master_key);
+  EXCEPTION WHEN OTHERS THEN RETURN NULL;
+  END;
+  RETURN plaintext;
+END $$;
+```
 
 ## Step 3 — verify
 
-Open a fresh SQL Editor session (so the GUC is read at connect
-time) and run:
-
 ```sql
-SELECT length(current_setting('app.oauth_master_key', true));
+SELECT length(decrypted_secret) FROM vault.decrypted_secrets
+  WHERE name = 'oauth_master_key';
 ```
 
-Expected: `64` (length of the hex string).
+Expected: `64`.
 
 ## Rotation runbook
 
-Master key compromise → rotate:
-
-1. Generate new key (`openssl rand -hex 32`).
-2. Re-encrypt every row in one transaction:
+1. Generate new key: `openssl rand -hex 32`.
+2. Update vault secret (Vault auto-creates a new version):
    ```sql
-   BEGIN;
-   ALTER DATABASE postgres SET app.oauth_master_key TO '<NEW>';
-   -- NOTE: needs reconnect for GUC to apply — run in a new session.
+   SELECT vault.update_secret(
+     (SELECT id FROM vault.secrets WHERE name = 'oauth_master_key'),
+     'NEW-64-CHAR-HEX'
+   );
    ```
-3. In the NEW session:
-   ```sql
-   UPDATE user_email_accounts
-      SET oauth_refresh_token = encrypt_oauth_token(decrypt_oauth_token(oauth_refresh_token))
-    WHERE oauth_refresh_token IS NOT NULL;
-   ```
-   (This decrypts with the new GUC value, but the rows were
-   encrypted with the old key. Two-stage rotation: decrypt with
-   OLD, re-encrypt with NEW — needs a custom helper. Simpler:
-   force-reauth every user by deleting the rows and have them
-   reconnect via OAuth.)
-4. Audit: ensure no plaintext refresh-tokens leaked into logs /
-   backups / dumps during rotation.
+3. The old key is GONE — every existing encrypted refresh-token
+   now decrypts to NULL. Two paths:
+   - **Soft rotation**: do nothing; users re-OAuth on next sync
+     attempt (current UX handles NULL decrypt by prompting re-auth).
+   - **Hard rotation**: pre-rotate by capturing all plaintext
+     under the OLD key first, then update vault, then re-encrypt:
+     ```sql
+     CREATE TEMP TABLE _old_tokens AS
+       SELECT id, decrypt_oauth_token(oauth_refresh_token) AS pt
+         FROM user_email_accounts
+        WHERE oauth_refresh_token IS NOT NULL;
+     -- Then update_secret in vault.
+     -- Then in a fresh session:
+     UPDATE user_email_accounts uea
+        SET oauth_refresh_token = encrypt_oauth_token(t.pt)
+       FROM _old_tokens t
+      WHERE uea.id = t.id;
+     ```
 
 ## Storage rules
 
-- **NEVER commit the key** to git. Not in code, not in `.env`,
-  not in docs/.
-- **NEVER share** via Slack / email / chat outside this trusted
-  chat thread.
-- **Backup** the key in a password manager (1Password / Bitwarden)
-  separate from any other Career-Buddy credentials.
-- **Rotate annually** OR immediately on suspected compromise.
+- **NEVER commit the key** to git.
+- **NEVER share** via Slack / email / chat outside trusted threads.
+- **Backup** in a password manager (1Password / Bitwarden).
+- **Rotate** annually OR immediately on suspected compromise.
 
 ## Failure modes
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `app.oauth_master_key not set or too short` | GUC empty or < 32 chars | Re-run Step 2 with a 64-char hex |
-| `encrypt_oauth_token` permission denied | Caller isn't `service_role` | Call from edge function with service-role client, not anon |
-| `decrypt_oauth_token` returns NULL | Ciphertext encrypted under different key | Re-auth the user via OAuth |
+| `permission denied to set parameter "app..."` | Tried ALTER DATABASE SET on managed Postgres | Use vault instead (this doc) |
+| `oauth_master_key vault secret missing` | Step 2 not run | Run Step 2 |
+| `function vault.create_secret(...) does not exist` | supabase_vault extension not enabled | `CREATE EXTENSION supabase_vault;` first |
+| `decrypt_oauth_token` returns NULL | Ciphertext encrypted under different key | User must re-auth via OAuth |
