@@ -32,6 +32,9 @@ BEGIN;
 -- Password ist NULL → user kann nur via magic-link / Google OAuth
 -- rein (sicherer).
 
+-- auth.users only has a PARTIAL unique index on email
+-- (WHERE is_sso_user = false), so ON CONFLICT (email) can't target
+-- it. Use WHERE NOT EXISTS instead — same idempotency guarantee.
 INSERT INTO auth.users (
   id, instance_id, aud, role, email,
   encrypted_password,
@@ -40,7 +43,7 @@ INSERT INTO auth.users (
   created_at, updated_at,
   is_super_admin, is_anonymous
 )
-VALUES (
+SELECT
   gen_random_uuid(),
   '00000000-0000-0000-0000-000000000000',
   'authenticated',
@@ -52,8 +55,9 @@ VALUES (
   '{}'::jsonb,
   now(), now(),
   false, false
-)
-ON CONFLICT (email) DO NOTHING;
+WHERE NOT EXISTS (
+  SELECT 1 FROM auth.users WHERE email = 'enigkt1@gmail.com'
+);
 
 -- Capture UUID in a temp table so subsequent statements reference it.
 CREATE TEMP TABLE _bootstrap AS
