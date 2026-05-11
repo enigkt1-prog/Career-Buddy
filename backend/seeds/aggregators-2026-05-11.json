@@ -1,0 +1,24 @@
+[
+  {
+    "name": "RemoteOK",
+    "domain": "remoteok.com",
+    "careers_url": "https://remoteok.com",
+    "geography": "Worldwide (remote)",
+    "stage_focus": "mixed",
+    "sector_tags": ["aggregator", "remote-only"],
+    "tier": 3,
+    "sources": ["session-d-gap5-aggregator"],
+    "notes": "Public JSON API; ~98 rolling jobs; per-row company comes from raw payload (aggregator pattern)"
+  },
+  {
+    "name": "We Work Remotely",
+    "domain": "weworkremotely.com",
+    "careers_url": "https://weworkremotely.com/remote-jobs.rss",
+    "geography": "Worldwide (remote)",
+    "stage_focus": "mixed",
+    "sector_tags": ["aggregator", "remote-only"],
+    "tier": 3,
+    "sources": ["session-d-gap5-aggregator"],
+    "notes": "Public RSS feed; ~100 rolling jobs; per-row company from 'Company: Title' split"
+  }
+]

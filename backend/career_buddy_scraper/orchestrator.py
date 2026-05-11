@@ -34,7 +34,9 @@ from .ats.lever import LeverAdapter
 from .ats.personio import PersonioAdapter
 from .ats.recruitee import RecruiteeAdapter
 from .ats.workable import WorkableAdapter
+from .ats.remoteok import RemoteOkAdapter
 from .ats.smartrecruiters import SmartRecruitersAdapter
+from .ats.weworkremotely import WeWorkRemotelyAdapter
 from .ats.workday import WorkdayAdapter
 from .db import REPO_ROOT, connect
 from .discovery import discover_ats
@@ -53,6 +55,8 @@ ADAPTERS: dict[str, Any] = {
     "recruitee": RecruiteeAdapter(),
     "workday": WorkdayAdapter(),
     "smartrecruiters": SmartRecruitersAdapter(),
+    "remoteok": RemoteOkAdapter(),
+    "weworkremotely": WeWorkRemotelyAdapter(),
 }
 
 
