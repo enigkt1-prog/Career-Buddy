@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Airalo",
+    "domain": "airalo.com",
+    "careers_url": "https://jobs.lever.co/airalo",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "antler"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-antler"
+    ],
+    "notes": "antler portfolio; lever/airalo verified 11 jobs (probe 2026-05-11)"
+  },
+  {
+    "name": "Adaptive",
+    "domain": "adaptive.live",
+    "careers_url": "https://jobs.ashbyhq.com/adaptive",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "antler"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-antler"
+    ],
+    "notes": "antler portfolio; ashby/adaptive verified 9 jobs (probe 2026-05-11)"
+  },
+  {
+    "name": "Airmo",
+    "domain": "airmo.io",
+    "careers_url": "https://airmo.jobs.personio.de",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "antler"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-antler"
+    ],
+    "notes": "antler portfolio; personio/airmo verified 3 jobs (probe 2026-05-11)"
+  },
+  {
+    "name": "Agentio",
+    "domain": "agentio.com",
+    "careers_url": "https://jobs.ashbyhq.com/agentio",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "antler"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-antler"
+    ],
+    "notes": "antler portfolio; ashby/agentio verified 16 jobs (probe 2026-05-11)"
+  }
+]

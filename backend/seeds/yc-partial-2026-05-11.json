@@ -1,0 +1,722 @@
+[
+  {
+    "name": "Hyperbound",
+    "domain": "hyperbound.ai",
+    "careers_url": "https://jobs.ashbyhq.com/hyperbound",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/hyperbound verified 2 jobs"
+  },
+  {
+    "name": "Output Biosciences",
+    "domain": "outputbio.com",
+    "careers_url": "https://jobs.ashbyhq.com/output",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/output verified 6 jobs"
+  },
+  {
+    "name": "Elyos AI",
+    "domain": "elyos.ai",
+    "careers_url": "https://jobs.ashbyhq.com/elyos",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/elyos verified 3 jobs"
+  },
+  {
+    "name": "Atlas",
+    "domain": "atlaswork.ai",
+    "careers_url": "https://jobs.ashbyhq.com/atlas",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/atlas verified 12 jobs"
+  },
+  {
+    "name": "Castle",
+    "domain": "castle.io",
+    "careers_url": "https://jobs.ashbyhq.com/castle",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/castle verified 2 jobs"
+  },
+  {
+    "name": "Netomi",
+    "domain": "netomi.com",
+    "careers_url": "https://jobs.lever.co/netomi",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; lever/netomi verified 33 jobs"
+  },
+  {
+    "name": "Aviator",
+    "domain": "aviator.co",
+    "careers_url": "https://jobs.ashbyhq.com/aviator",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/aviator verified 4 jobs"
+  },
+  {
+    "name": "Zuma",
+    "domain": "getzuma.com",
+    "careers_url": "https://jobs.lever.co/getzuma",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; lever/getzuma verified 6 jobs"
+  },
+  {
+    "name": "Apollo.io",
+    "domain": "apollo.io",
+    "careers_url": "https://boards.greenhouse.io/apolloio",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; greenhouse/apolloio verified 43 jobs"
+  },
+  {
+    "name": "Stepful",
+    "domain": "stepful.com",
+    "careers_url": "https://jobs.ashbyhq.com/stepful",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/stepful verified 29 jobs"
+  },
+  {
+    "name": "Turion Space",
+    "domain": "turionspace.com",
+    "careers_url": "https://jobs.ashbyhq.com/turion-space",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/turion-space verified 16 jobs"
+  },
+  {
+    "name": "Diligent",
+    "domain": "godiligent.ai",
+    "careers_url": "https://boards.greenhouse.io/diligent",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; greenhouse/diligent verified 7 jobs"
+  },
+  {
+    "name": "Bland AI",
+    "domain": "bland.com",
+    "careers_url": "https://jobs.ashbyhq.com/bland",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/bland verified 13 jobs"
+  },
+  {
+    "name": "Gecko Robotics",
+    "domain": "geckorobotics.com",
+    "careers_url": "https://jobs.ashbyhq.com/gecko-robotics",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/gecko-robotics verified 21 jobs"
+  },
+  {
+    "name": "Sendbird",
+    "domain": "sendbird.com",
+    "careers_url": "https://boards.greenhouse.io/sendbird",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; greenhouse/sendbird verified 21 jobs"
+  },
+  {
+    "name": "Thunkable",
+    "domain": "thunkable.com",
+    "careers_url": "https://jobs.lever.co/thunkable",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; lever/thunkable verified 3 jobs"
+  },
+  {
+    "name": "Astranis",
+    "domain": "astranis.com",
+    "careers_url": "https://boards.greenhouse.io/astranis",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; greenhouse/astranis verified 138 jobs"
+  },
+  {
+    "name": "Nash",
+    "domain": "getnashglobal.com",
+    "careers_url": "https://jobs.ashbyhq.com/nash",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/nash verified 20 jobs"
+  },
+  {
+    "name": "Casca",
+    "domain": "cascading.ai",
+    "careers_url": "https://jobs.ashbyhq.com/casca",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/casca verified 9 jobs"
+  },
+  {
+    "name": "Charge Robotics",
+    "domain": "chargerobotics.com",
+    "careers_url": "https://jobs.ashbyhq.com/charge-robotics",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/charge-robotics verified 14 jobs"
+  },
+  {
+    "name": "Exa",
+    "domain": "exa.ai",
+    "careers_url": "https://jobs.ashbyhq.com/exa",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/exa verified 29 jobs"
+  },
+  {
+    "name": "Vetcove",
+    "domain": "vetcove.com",
+    "careers_url": "https://jobs.ashbyhq.com/vetcove",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/vetcove verified 23 jobs"
+  },
+  {
+    "name": "Sully.ai",
+    "domain": "sully.ai",
+    "careers_url": "https://jobs.ashbyhq.com/sully-ai",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/sully-ai verified 23 jobs"
+  },
+  {
+    "name": "Every",
+    "domain": "every.io",
+    "careers_url": "https://every.jobs.personio.de",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; personio/every verified 6 jobs"
+  },
+  {
+    "name": "Prosper",
+    "domain": "getprosper.ai?utm_source=yc&utm_medium=directory&utm_campaign=yc_directory",
+    "careers_url": "https://jobs.lever.co/prosper",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; lever/prosper verified 15 jobs"
+  },
+  {
+    "name": "Airgoods",
+    "domain": "airgoods.com",
+    "careers_url": "https://jobs.ashbyhq.com/airgoods",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/airgoods verified 4 jobs"
+  },
+  {
+    "name": "Electric Air",
+    "domain": "electricair.io",
+    "careers_url": "https://jobs.ashbyhq.com/electricair",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/electricair verified 4 jobs"
+  },
+  {
+    "name": "Nova Credit",
+    "domain": "novacredit.com",
+    "careers_url": "https://boards.greenhouse.io/novacredit",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; greenhouse/novacredit verified 17 jobs"
+  },
+  {
+    "name": "Solve Intelligence",
+    "domain": "solveintelligence.com",
+    "careers_url": "https://jobs.ashbyhq.com/solveintelligence",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/solveintelligence verified 13 jobs"
+  },
+  {
+    "name": "Subsets",
+    "domain": "subsets.com",
+    "careers_url": "https://jobs.ashbyhq.com/subsets",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/subsets verified 6 jobs"
+  },
+  {
+    "name": "Joy",
+    "domain": "withjoy.com",
+    "careers_url": "https://joy.jobs.personio.de",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; personio/joy verified 5 jobs"
+  },
+  {
+    "name": "Capi Money",
+    "domain": "capimoney.com",
+    "careers_url": "https://jobs.ashbyhq.com/capimoney",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/capimoney verified 21 jobs"
+  },
+  {
+    "name": "Multiply Labs",
+    "domain": "multiplylabs.com",
+    "careers_url": "https://jobs.lever.co/multiplylabs",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; lever/multiplylabs verified 14 jobs"
+  },
+  {
+    "name": "Agave",
+    "domain": "useagave.com",
+    "careers_url": "https://jobs.ashbyhq.com/agave",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/agave verified 1 jobs"
+  },
+  {
+    "name": "Campfire",
+    "domain": "campfire.ai",
+    "careers_url": "https://jobs.ashbyhq.com/campfire",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/campfire verified 27 jobs"
+  },
+  {
+    "name": "Miso",
+    "domain": "miso.kr",
+    "careers_url": "https://jobs.ashbyhq.com/miso",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/miso verified 22 jobs"
+  },
+  {
+    "name": "Terminal",
+    "domain": "withterminal.com",
+    "careers_url": "https://jobs.ashbyhq.com/terminal",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/terminal verified 6 jobs"
+  },
+  {
+    "name": "People.ai",
+    "domain": "people.ai",
+    "careers_url": "https://jobs.lever.co/people-ai",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; lever/people-ai verified 7 jobs"
+  },
+  {
+    "name": "Sieve",
+    "domain": "sievedata.com",
+    "careers_url": "https://jobs.ashbyhq.com/sieve",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/sieve verified 10 jobs"
+  },
+  {
+    "name": "ClassDojo",
+    "domain": "classdojo.com",
+    "careers_url": "https://jobs.ashbyhq.com/classdojo",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/classdojo verified 18 jobs"
+  },
+  {
+    "name": "Outset",
+    "domain": "outset.ai",
+    "careers_url": "https://jobs.ashbyhq.com/outset",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/outset verified 6 jobs"
+  },
+  {
+    "name": "FleetWorks",
+    "domain": "fleetworks.ai",
+    "careers_url": "https://jobs.ashbyhq.com/fleetworks",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/fleetworks verified 15 jobs"
+  },
+  {
+    "name": "Clipboard",
+    "domain": "clipboardhealth.com",
+    "careers_url": "https://jobs.ashbyhq.com/clipboard",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/clipboard verified 50 jobs"
+  },
+  {
+    "name": "Decoda Health",
+    "domain": "decodahealth.com",
+    "careers_url": "https://jobs.ashbyhq.com/decodahealth",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/decodahealth verified 3 jobs"
+  },
+  {
+    "name": "Snappr",
+    "domain": "snappr.com",
+    "careers_url": "https://jobs.lever.co/snappr",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; lever/snappr verified 26 jobs"
+  },
+  {
+    "name": "Mednet",
+    "domain": "themednet.org",
+    "careers_url": "https://jobs.ashbyhq.com/mednet",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/mednet verified 4 jobs"
+  },
+  {
+    "name": "Invert",
+    "domain": "invertbio.com",
+    "careers_url": "https://jobs.ashbyhq.com/invert",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; ashby/invert verified 4 jobs"
+  },
+  {
+    "name": "AON3D",
+    "domain": "aon3d.com",
+    "careers_url": "https://boards.greenhouse.io/aon3d",
+    "geography": null,
+    "stage_focus": "seed",
+    "sector_tags": [
+      "yc"
+    ],
+    "tier": 2,
+    "sources": [
+      "session-d-gap3-yc-partial"
+    ],
+    "notes": "YC portfolio; greenhouse/aon3d verified 4 jobs"
+  }
+]
