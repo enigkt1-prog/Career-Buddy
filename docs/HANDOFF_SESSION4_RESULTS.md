@@ -3,15 +3,16 @@
 > Session 4, 2026-05-10 night. Sonnet 4.6 (operator note: Opus 4.7
 > was active in part, switched mid-flight — see commit author).
 
-## Final lift (post four scrape passes)
+## Final lift (post five scrape passes)
 
 | Metric | Baseline (start) | After session D | Delta |
 |---|---:|---:|---:|
-| Active jobs | 9,980 | **27,832** | **+17,852 (+179%)** |
-| Producing companies | 104 | **405** | **+301 (+289%)** |
-| `vcs` rows | 209 | 451 | +242 |
+| Active jobs | 9,980 | **28,290** | **+18,310 (+183%)** |
+| Producing companies | 104 | **574** | **+470 (+452%)** |
+| `vcs` rows | 209 | 466 | +257 |
 | `skip_probe=true` | 2 | 60 | +58 (dead-URL noise muted) |
-| Backend pytest | 258 | 278 | +20 |
+| Backend pytest | 258 | 300 | +42 |
+| ATS adapters | 3 producing (gh/ashby/lever) | **10 producing** (+ workday, smartrecruiters, personio, recruitee, workable, remoteok, weworkremotely) | +7 |
 
 **By ATS** (active jobs):
 
@@ -21,7 +22,10 @@
 | **workday** | 0 | 9,318 | **+9,318** | new adapter — Intel, NVIDIA, Salesforce, Citi, Pfizer, Philips, Novartis, HP, Workday |
 | ashby | 3,294 | 6,807 | +3,513 | yc-medium + DACH/EU + deepl/forto/nelly/sanity |
 | lever | 981 | 1,896 | +915 | yc-medium + spotify + palantir + mistral |
+| **smartrecruiters** | 0 | 261 | **+261** | new adapter — Visa, LVMH, Scalable Capital, Asics, ServiceNow |
 | **personio** | 0 | 113 | **+113** | normalize URL fix — pitch, tractive, urbansportsclub, BRYCK trio |
+| **weworkremotely** | 0 | 100 | **+100** | new aggregator adapter (RSS, per-row company split) |
+| **remoteok** | 0 | 97 | **+97** | new aggregator adapter (public JSON) |
 | **recruitee** | 0 | 27 | **+27** | Visionaries Club + others |
 | **workable** | 0 | 7 | **+7** | v3 body fix + normalize URL fix — Hugging Face |
 
@@ -162,7 +166,28 @@ Biggest single-ATS gap closed end-to-end:
 
 Backend pytest 263 → 278.
 
+### Gap 4 — SmartRecruiters adapter ✅ shipped
+
+- `ats/smartrecruiters.py` — offset-paginated API
+  (`api.smartrecruiters.com/v1/companies/<id>/postings`).
+- Case-preserving slug path through `discovery.py` because SR
+  identifiers are case-sensitive (`scalablegmbh` ≠ `ScalableCapital`).
+- `AtsSource.SMARTRECRUITERS` enum entry.
+- 9 unit tests.
+- Seeded 5 tenants in `seeds/smartrecruiters-tenants-2026-05-11.json`:
+  Visa, LVMH, Scalable Capital (DACH), Asics, ServiceNow. ~667
+  verified jobs; 261 net-new in DB after dedup.
+
 ### Gap 4 — Remaining ATS adapters (deferred)
+
+**JOIN.com** — public API returns "Unauthorized" without an API
+key; HTML pages are JS-rendered SPAs. Needs OAuth integration or
+Playwright. Skipped.
+
+**BambooHR** — `<company>.bamboohr.com` subdomains return a
+Cloudflare bot-block challenge for non-browser User-Agents.
+Needs either browser-fingerprint fakery (fragile) or Playwright.
+Skipped.
 
 Workday is the highest-leverage missing adapter. Confirmed during
 audit with live API probes:
@@ -196,9 +221,34 @@ Realistic next-session ship order: Workday → Personio (already
 exists; just needs DACH seed input) → SmartRecruiters → JOIN.com →
 BambooHR.
 
-### Gap 5 — Job aggregators ❌ not started, by design
+### Gap 5 — Job aggregators ✅ shipped (round 1)
 
-Per handoff: "Only ship after Gaps 1–4 land".
+Two aggregator adapters live; aggregator pattern is distinct from
+VC-portfolio adapters — every posting comes from a different
+hiring company, so `normalize()` IGNORES the per-VC
+`company_name`/`company_domain` and pulls the real hiring company
+out of each posting. Per-job `company_domain` is derived from the
+apply_url host when it points at a non-aggregator domain, otherwise
+falls back to `<sanitised>.{remoteok|wwr}-aggregator` to keep rows
+distinct without claiming a real domain.
+
+- `ats/remoteok.py` — single GET to `remoteok.com/api`; ~97
+  rolling jobs.
+- `ats/weworkremotely.py` — RSS feed `weworkremotely.com/remote-jobs.rss`;
+  ~100 jobs; title format `"Company: Position"`.
+- `AtsSource.REMOTEOK` + `AtsSource.WEWORKREMOTELY` enum entries.
+- 13 unit tests across both adapters.
+- Both seeded as new `vcs` rows in `seeds/aggregators-2026-05-11.json`.
+
+### Gap 5 — Remaining aggregators (deferred)
+
+**Wellfound (ex-AngelList Talent)** — public API requires
+authenticated OAuth flow with a real account. Skipped (auth
+out-of-scope; would need a service-account setup).
+
+**Welcome to the Jungle** — portfolio page is a JS-rendered SPA;
+no static company listings, no public REST API. Needs Playwright.
+Skipped.
 
 ## Commits stacked on `main`
 
