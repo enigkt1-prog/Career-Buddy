@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Visa",
+    "domain": "visa.com",
+    "careers_url": "https://careers.smartrecruiters.com/Visa",
+    "geography": "Foster City, US",
+    "stage_focus": "growth",
+    "sector_tags": ["fintech", "payments"],
+    "tier": 1,
+    "sources": ["session-d-gap4-smartrecruiters"],
+    "notes": "SmartRecruiters Visa; verified 30 jobs"
+  },
+  {
+    "name": "LVMH",
+    "domain": "lvmh.com",
+    "careers_url": "https://careers.smartrecruiters.com/LVMH",
+    "geography": "Paris, FR",
+    "stage_focus": "growth",
+    "sector_tags": ["luxury", "retail"],
+    "tier": 1,
+    "sources": ["session-d-gap4-smartrecruiters"],
+    "notes": "SmartRecruiters LVMH; verified 4 jobs"
+  },
+  {
+    "name": "Scalable Capital",
+    "domain": "scalable.capital",
+    "careers_url": "https://careers.smartrecruiters.com/scalablegmbh",
+    "geography": "Munich, DE",
+    "stage_focus": "growth",
+    "sector_tags": ["fintech", "wealth-management"],
+    "tier": 1,
+    "sources": ["session-d-gap4-smartrecruiters"],
+    "notes": "DACH robo-advisor; SmartRecruiters scalablegmbh; verified 101 jobs"
+  },
+  {
+    "name": "Asics",
+    "domain": "asics.com",
+    "careers_url": "https://careers.smartrecruiters.com/Asics",
+    "geography": "Kobe, JP",
+    "stage_focus": "growth",
+    "sector_tags": ["consumer", "apparel"],
+    "tier": 2,
+    "sources": ["session-d-gap4-smartrecruiters"],
+    "notes": "SmartRecruiters Asics; verified 27 jobs"
+  },
+  {
+    "name": "ServiceNow",
+    "domain": "servicenow.com",
+    "careers_url": "https://careers.smartrecruiters.com/ServiceNow",
+    "geography": "Santa Clara, US",
+    "stage_focus": "growth",
+    "sector_tags": ["enterprise-saas", "itsm"],
+    "tier": 1,
+    "sources": ["session-d-gap4-smartrecruiters"],
+    "notes": "SmartRecruiters ServiceNow; verified 505 jobs"
+  }
+]

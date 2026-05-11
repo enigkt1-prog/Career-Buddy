@@ -33,6 +33,12 @@ ATS_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
             re.I,
         ),
     ),
+    (
+        "smartrecruiters",
+        re.compile(
+            r"(?:careers|jobs)\.smartrecruiters\.com/(?P<slug>[A-Za-z0-9_-]+)",
+        ),
+    ),
 ]
 
 
@@ -60,6 +66,10 @@ async def discover_ats(careers_url: str, client: RateLimitedClient) -> tuple[str
                 if normalised is None:
                     continue
                 return provider, normalised
+            if provider == "smartrecruiters":
+                # SmartRecruiters company identifiers are case-sensitive
+                # (e.g. "scalablegmbh" vs "ScalableCapital"). Keep raw casing.
+                return provider, slug
             return provider, slug.lower()
     return None
 
