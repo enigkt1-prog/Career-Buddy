@@ -1,26 +1,24 @@
 import { useState } from "react";
-import { Mail, Plus, Star } from "lucide-react";
+import { Mail, Plus, Star, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Email accounts UI — Phase 1.5 stub.
+ * Email accounts UI — Phase 1.6 wired.
  *
- * The Supabase table `user_email_accounts` (migration 0010) is live,
- * but the OAuth client + token encryption layer (KMS / pgcrypto)
- * aren't wired yet. Until then this component is a UI mock that:
- *   - shows the empty state and the planned multi-account chip-set
- *   - exposes Connect-Gmail / Connect-Outlook / Connect-IMAP buttons
- *     that open an info modal explaining when OAuth ships
- *   - persists nothing
+ * Buttons invoke the `email-oauth-start` edge function, which returns
+ * a provider authorisation URL. We redirect the browser there;
+ * provider redirects back to /email-oauth-callback, which finishes
+ * the handshake by invoking `email-oauth-callback`.
  *
- * When backend lands the OAuth handshake (Phase 1.6), the
- * `accounts` state below will be hydrated from a `select * from
- * user_email_accounts` query and the buttons will trigger the real
- * OAuth redirect.
+ * Until the user is signed in to Supabase Auth the edge function
+ * returns 401 ("sign in required for OAuth connect") — surfaced as a
+ * "please sign in" prompt with a /login link.
  */
 
 type Provider = "gmail" | "outlook" | "imap";
+type ConnectableProvider = "gmail" | "outlook";
 
 type EmailAccount = {
   id: string;
@@ -41,17 +39,53 @@ const PROVIDER_COLOR: Record<Provider, string> = {
   imap: "bg-cinema-mist text-cinema-ink-mute",
 };
 
+type ConnectState =
+  | { kind: "idle" }
+  | { kind: "starting"; provider: ConnectableProvider }
+  | { kind: "auth-required" }
+  | { kind: "error"; provider: ConnectableProvider; message: string };
+
 export function EmailAccounts() {
-  const [accounts] = useState<EmailAccount[]>([]); // empty until OAuth ships
-  const [pendingProvider, setPendingProvider] = useState<Provider | null>(null);
+  const [accounts] = useState<EmailAccount[]>([]); // hydrated post-OAuth
+  const [connect, setConnect] = useState<ConnectState>({ kind: "idle" });
+  const [imapNotice, setImapNotice] = useState(false);
 
-  function explain(provider: Provider) {
-    setPendingProvider(provider);
+  async function startConnect(provider: ConnectableProvider) {
+    setConnect({ kind: "starting", provider });
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "email-oauth-start",
+        { body: { provider } },
+      );
+      if (error) {
+        const message = error.message ?? "OAuth start failed.";
+        const status = (error as { context?: { status?: number } }).context
+          ?.status;
+        if (status === 401 || /sign in required/i.test(message)) {
+          setConnect({ kind: "auth-required" });
+        } else {
+          setConnect({ kind: "error", provider, message });
+        }
+        return;
+      }
+      const url = (data as { authoriseUrl?: string })?.authoriseUrl;
+      if (!url) {
+        setConnect({
+          kind: "error",
+          provider,
+          message: "Edge function returned no authorise URL.",
+        });
+        return;
+      }
+      window.location.href = url;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "OAuth start failed.";
+      setConnect({ kind: "error", provider, message });
+    }
   }
 
-  function close() {
-    setPendingProvider(null);
-  }
+  const starting = connect.kind === "starting";
 
   return (
     <div className="space-y-5">
@@ -101,54 +135,91 @@ export function EmailAccounts() {
       )}
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => explain("gmail")} className="pill-cta">
-          <Plus className="w-4 h-4" /> Connect Gmail
-        </button>
         <button
           type="button"
-          onClick={() => explain("outlook")}
-          className="pill-cta-soft"
+          onClick={() => startConnect("gmail")}
+          disabled={starting}
+          className="pill-cta disabled:opacity-40"
         >
-          <Plus className="w-4 h-4" /> Connect Outlook
+          {connect.kind === "starting" && connect.provider === "gmail" ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Plus className="w-4 h-4" />
+          )}
+          Connect Gmail
         </button>
         <button
           type="button"
-          onClick={() => explain("imap")}
+          onClick={() => startConnect("outlook")}
+          disabled={starting}
+          className="pill-cta-soft disabled:opacity-40"
+        >
+          {connect.kind === "starting" && connect.provider === "outlook" ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Plus className="w-4 h-4" />
+          )}
+          Connect Outlook
+        </button>
+        <button
+          type="button"
+          onClick={() => setImapNotice(true)}
           className="pill-cta-soft"
         >
           <Plus className="w-4 h-4" /> Connect IMAP
         </button>
       </div>
 
+      {connect.kind === "auth-required" && (
+        <div className="rounded-glass border border-cinema-mint bg-white/70 px-4 py-3 text-base text-cinema-ink-soft">
+          You need to be signed in before connecting an inbox.{" "}
+          <a
+            href="/login"
+            className="text-cinema-pine underline hover:text-cinema-ink"
+          >
+            Sign in
+          </a>{" "}
+          and try again.
+        </div>
+      )}
+
+      {connect.kind === "error" && (
+        <div className="rounded-glass border border-red-200 bg-red-50 px-4 py-3 text-base text-destructive">
+          {PROVIDER_LABEL[connect.provider]} couldn't start: {connect.message}
+        </div>
+      )}
+
       <p className="text-cinema-caption">
-        Phase 1.5 UI stub — the `user_email_accounts` schema is live in
-        Supabase (migration 0010). OAuth handshake + encrypted refresh
-        tokens ship with Phase 1.6.
+        OAuth handshake live (Phase 1.6). Refresh tokens are encrypted via
+        pgcrypto + Supabase Vault before storage. Outlook requires the
+        OUTLOOK_OAUTH_* env vars on the edge function — Gmail is the
+        default day-one provider.
       </p>
 
-      {pendingProvider && (
+      {imapNotice && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-cinema-moss/60 backdrop-blur-sm p-4"
-          onClick={close}
+          onClick={() => setImapNotice(false)}
         >
           <div
             className="glass-panel-heavy max-w-md w-full p-8"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-cinema-eyebrow text-cinema-ink-mute mb-3">
-              Phase 1.6 — coming soon
+              Not yet
             </div>
-            <h3 className="text-cinema-h2 mb-3">
-              Connect {PROVIDER_LABEL[pendingProvider]}
-            </h3>
+            <h3 className="text-cinema-h2 mb-3">IMAP support</h3>
             <p className="text-cinema-body mb-5">
-              Backend OAuth handshake + encrypted token storage land in
-              Phase 1.6. Until then this is a placeholder; nothing is
-              sent or stored. The Supabase table is already there
-              waiting (`user_email_accounts`, migration 0010).
+              IMAP / generic mailbox connections aren't supported yet —
+              app-password handling + per-provider quirks need their own
+              encrypted-secret path. Phase-2 backlog. Use Gmail or
+              Outlook for now.
             </p>
             <div className="flex justify-end">
-              <button onClick={close} className="pill-cta">
+              <button
+                onClick={() => setImapNotice(false)}
+                className="pill-cta"
+              >
                 Got it
               </button>
             </div>
