@@ -3,15 +3,27 @@
 > Session 4, 2026-05-10 night. Sonnet 4.6 (operator note: Opus 4.7
 > was active in part, switched mid-flight — see commit author).
 
-## Final lift (post two scrape passes)
+## Final lift (post four scrape passes)
 
 | Metric | Baseline (start) | After session D | Delta |
 |---|---:|---:|---:|
-| Active jobs | 9,980 | **12,504** | **+2,524** |
-| Producing companies | 104 | **126** | **+22** |
-| `vcs` rows | 209 | 235 | +26 (14 + 9 + 3) |
+| Active jobs | 9,980 | **27,832** | **+17,852 (+179%)** |
+| Producing companies | 104 | **405** | **+301 (+289%)** |
+| `vcs` rows | 209 | 451 | +242 |
 | `skip_probe=true` | 2 | 60 | +58 (dead-URL noise muted) |
-| Backend pytest | 258 | 263 | +5 |
+| Backend pytest | 258 | 278 | +20 |
+
+**By ATS** (active jobs):
+
+| ATS | Baseline | Final | Delta | Notes |
+|---|---:|---:|---:|---|
+| greenhouse | 5,705 | 9,664 | +3,959 | yc-medium + DACH/EU batch + Antler producers |
+| **workday** | 0 | 9,318 | **+9,318** | new adapter — Intel, NVIDIA, Salesforce, Citi, Pfizer, Philips, Novartis, HP, Workday |
+| ashby | 3,294 | 6,807 | +3,513 | yc-medium + DACH/EU + deepl/forto/nelly/sanity |
+| lever | 981 | 1,896 | +915 | yc-medium + spotify + palantir + mistral |
+| **personio** | 0 | 113 | **+113** | normalize URL fix — pitch, tractive, urbansportsclub, BRYCK trio |
+| **recruitee** | 0 | 27 | **+27** | Visionaries Club + others |
+| **workable** | 0 | 7 | **+7** | v3 body fix + normalize URL fix — Hugging Face |
 
 Three real bugs found + fixed in production adapters:
 
@@ -74,7 +86,39 @@ the orchestrator has no portfolio-walking code path. Seeding them
 with `careers_url=null` would simply skip them in `_load_vcs_with_careers_url`.
 Park until portfolio-walking lands (separate piece of work).
 
-### Gap 3 — Accelerator pipelines ❌ not started
+### Gap 3 — Accelerator pipelines ✅ shipped (round 2)
+
+User broadened the ask mid-session: not just YC but also Antler,
+a16z speedrun, EWOR, BRYCK Startup Alliance, Techstars, EF, 500
+Global, On Deck. Implementation:
+
+- New CLI `cli/probe_accelerator.py` — fans a list of
+  `{name, domain, slug?}` rows out across all 6 supported ATS
+  adapters; emits a Career-Buddy seed JSON of producers. Generic
+  enough to point at any accelerator's portfolio dump.
+
+- **YC**: `https://yc-oss.github.io/api/companies/all.json` →
+  5,889 companies. Filtered to `status=Active AND isHiring AND
+  team_size>=25` (455 cos). 253 producers (55% hit rate) for
+  ~6,776 verified jobs; 214 net-new after deduping vs existing
+  seed. Plus a 48-row partial sweep from before the focused
+  cutover.
+
+- **Antler**: static HTML portfolio scrape (51 cos) → 4 producers
+  (~39 jobs). Page is partially JS-rendered; further coverage
+  needs Playwright.
+
+- **BRYCK Startup Alliance** (DACH/Berlin-Brandenburg): static HTML
+  portfolio (61 cos) → 3 producers (~25 jobs).
+
+- **Skipped** (JS-rendered SPAs with no static company list — need
+  Playwright per memory): a16z speedrun, Techstars, EF, 500
+  Global, On Deck. EWOR returned 404 on every portfolio path
+  tried.
+
+Combined Gap 3 ship: 269 producer rows / ~6,840 verified jobs.
+
+### Gap 3 leftovers (deferred)
 
 YC + Techstars + Antler + EF + 500 Global + On Deck — 50–100k jobs of
 hebel by handoff estimate, but it's a 1-week build per the handoff's
@@ -90,7 +134,35 @@ own time estimate. Not started. Notes for next session:
 - The `AtsSource` enum already has `YC_WAAS` and `WELLFOUND` reserved
   (see `models.py`), so no schema work needed for YC.
 
-### Gap 4 — New ATS adapters ❌ not started
+### Gap 4 — Workday adapter ✅ shipped
+
+Biggest single-ATS gap closed end-to-end:
+
+- `ats/workday.py` — adapter (detection + offset-paginated fetch
+  + URL-construction normalize). Slug shape compound:
+  `<tenant>/<wd_num>/<site_id>` (Workday tenants live on regional
+  shards — wd1/wd3/wd5/wd12/etc — and the same tenant on a
+  different shard is a different board).
+- `discovery.py` — embed regex + post-match slug normaliser so a
+  Workday URL embedded in an HTML careers page surfaces the
+  adapter-expected compound slug.
+- `models.py` — `AtsSource.WORKDAY` added (no migration needed;
+  `jobs.ats_source` is free-text per `0002_layer1_scraper.sql`).
+- `orchestrator.py` — wired into `ADAPTERS` dict.
+- 15 unit tests in `tests/test_workday_adapter.py` covering detect
+  happy/reject, normalize URL construction + multi-location
+  placeholder skip, `_parse_posted_on` heuristics for Workday's
+  relative date strings, fetch one-page-and-stop, offset
+  pagination, MAX_PAGES cap, empty-page-stops, and discover_ats
+  slug normalisation.
+- 9 Workday tenants seeded in `seeds/workday-tenants-2026-05-11.json`:
+  Intel (783) · NVIDIA (2000) · Salesforce (1366) · Citi (2000) ·
+  Philips (1071) · Novartis (703) · Pfizer (526) · HP (494) ·
+  Workday (374) = **9,317 verified jobs**.
+
+Backend pytest 263 → 278.
+
+### Gap 4 — Remaining ATS adapters (deferred)
 
 Workday is the highest-leverage missing adapter. Confirmed during
 audit with live API probes:
