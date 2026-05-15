@@ -20,6 +20,21 @@ import { supabase } from "@/integrations/supabase/client";
 type Provider = "gmail" | "outlook" | "imap";
 type ConnectableProvider = "gmail" | "outlook";
 
+/**
+ * Outlook OAuth is hidden until the env var flips it on. The edge
+ * function already returns 500 when `OUTLOOK_OAUTH_CLIENT_ID` is
+ * absent; this gate keeps the UI from surfacing a button that can
+ * only fail. Flip `VITE_OUTLOOK_OAUTH_ENABLED=1` in `.env` (build
+ * time) once the Azure Entra app + secrets are live.
+ *
+ * Evaluated per-render (not module-top-level) so vi.stubEnv() in
+ * the test suite can flip the flag between cases.
+ */
+function isOutlookOauthEnabled(): boolean {
+  const v = import.meta.env.VITE_OUTLOOK_OAUTH_ENABLED;
+  return v === "1" || v === "true";
+}
+
 type EmailAccount = {
   id: string;
   email: string;
@@ -86,6 +101,7 @@ export function EmailAccounts() {
   }
 
   const starting = connect.kind === "starting";
+  const outlookEnabled = isOutlookOauthEnabled();
 
   return (
     <div className="space-y-5">
@@ -148,19 +164,21 @@ export function EmailAccounts() {
           )}
           Connect Gmail
         </button>
-        <button
-          type="button"
-          onClick={() => startConnect("outlook")}
-          disabled={starting}
-          className="pill-cta-soft disabled:opacity-40"
-        >
-          {connect.kind === "starting" && connect.provider === "outlook" ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Plus className="w-4 h-4" />
-          )}
-          Connect Outlook
-        </button>
+        {outlookEnabled && (
+          <button
+            type="button"
+            onClick={() => startConnect("outlook")}
+            disabled={starting}
+            className="pill-cta-soft disabled:opacity-40"
+          >
+            {connect.kind === "starting" && connect.provider === "outlook" ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
+            Connect Outlook
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setImapNotice(true)}
@@ -191,9 +209,10 @@ export function EmailAccounts() {
 
       <p className="text-cinema-caption">
         OAuth handshake live (Phase 1.6). Refresh tokens are encrypted via
-        pgcrypto + Supabase Vault before storage. Outlook requires the
-        OUTLOOK_OAUTH_* env vars on the edge function — Gmail is the
-        default day-one provider.
+        pgcrypto + Supabase Vault before storage. Gmail is the default
+        day-one provider; Outlook unlocks once
+        <code className="px-1 mx-1 bg-cinema-mist rounded">VITE_OUTLOOK_OAUTH_ENABLED=1</code>
+        ships alongside the Azure Entra secrets.
       </p>
 
       {imapNotice && (

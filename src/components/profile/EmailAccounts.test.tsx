@@ -42,6 +42,14 @@ import { EmailAccounts } from "./EmailAccounts";
 beforeEach(() => {
   invokeMock.mockReset();
   invokeMock.mockResolvedValue({ data: null, error: null });
+  // Default: Outlook flag enabled so the bulk of round-14 coverage
+  // (which clicks the Outlook button) keeps working. The dedicated
+  // visibility-gate describe-block clears the flag explicitly.
+  vi.stubEnv("VITE_OUTLOOK_OAUTH_ENABLED", "1");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("EmailAccounts — empty state", () => {
@@ -54,6 +62,39 @@ describe("EmailAccounts — empty state", () => {
     render(<EmailAccounts />);
     expect(
       screen.getByText(/read application\s+replies/i),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("EmailAccounts — Outlook visibility gate", () => {
+  test("Outlook button hidden when VITE_OUTLOOK_OAUTH_ENABLED is unset", () => {
+    vi.stubEnv("VITE_OUTLOOK_OAUTH_ENABLED", "");
+    render(<EmailAccounts />);
+    expect(
+      screen.queryByRole("button", { name: /Connect Outlook/i }),
+    ).not.toBeInTheDocument();
+    // Gmail + IMAP still rendered
+    expect(
+      screen.getByRole("button", { name: /Connect Gmail/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Connect IMAP/i }),
+    ).toBeInTheDocument();
+  });
+
+  test("Outlook button visible when VITE_OUTLOOK_OAUTH_ENABLED='1'", () => {
+    vi.stubEnv("VITE_OUTLOOK_OAUTH_ENABLED", "1");
+    render(<EmailAccounts />);
+    expect(
+      screen.getByRole("button", { name: /Connect Outlook/i }),
+    ).toBeInTheDocument();
+  });
+
+  test("Outlook button visible when VITE_OUTLOOK_OAUTH_ENABLED='true'", () => {
+    vi.stubEnv("VITE_OUTLOOK_OAUTH_ENABLED", "true");
+    render(<EmailAccounts />);
+    expect(
+      screen.getByRole("button", { name: /Connect Outlook/i }),
     ).toBeInTheDocument();
   });
 });
