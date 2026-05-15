@@ -4,31 +4,44 @@
  * Owned by A; tests by B per the cross-session pattern.
  *
  * Coverage:
- *  - Anonymous → "Sign in" link to /login
- *  - Signed-in → email shown + LogOut icon button
+ *  - Anonymous (INITIAL_SESSION null) → "Sign in" link to /login
+ *  - Signed-in (INITIAL_SESSION with user) → email shown + LogOut icon
  *  - LogOut click → calls signOut + sets window.location to "/"
- *  - onAuthChange null → flips back to anonymous
+ *  - SIGNED_OUT event → flips back to anonymous
+ *  - SIGNED_IN event after anonymous mount → flips to signed-in
  *  - User with no email → "Signed in" fallback label
+ *
+ * Stale-session fix (round-16 A): AuthPill now subscribes to
+ * `supabase.auth.onAuthStateChange` directly. INITIAL_SESSION fires
+ * with the cached session on mount, so we no longer race the HTTP
+ * getUser() call against detectSessionInUrl.
  */
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-const mockGetUser = vi.fn();
+type Listener = (event: string, session: unknown) => void;
+
+const mockUnsubscribe = vi.fn();
+let capturedListener: Listener | null = null;
+
+const mockOnAuthStateChange = vi.fn((cb: Listener) => {
+  capturedListener = cb;
+  return { data: { subscription: { unsubscribe: mockUnsubscribe } } };
+});
+
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
-      getUser: () => mockGetUser(),
+      onAuthStateChange: (cb: Listener) => mockOnAuthStateChange(cb),
     },
   },
 }));
 
-const mockOnAuthChange = vi.fn();
 const mockSignOut = vi.fn();
-const mockUnsubscribe = vi.fn();
 vi.mock("@/lib/auth", () => ({
-  onAuthChange: (cb: (id: string | null) => void) => mockOnAuthChange(cb),
   signOut: () => mockSignOut(),
 }));
 
@@ -36,12 +49,18 @@ import { AuthPill } from "./AuthPill";
 
 const originalLocation = window.location;
 
+function fireAuthEvent(event: string, session: unknown) {
+  if (!capturedListener) throw new Error("listener not captured");
+  act(() => {
+    capturedListener!(event, session);
+  });
+}
+
 beforeEach(() => {
-  mockGetUser.mockReset();
-  mockOnAuthChange.mockReset().mockReturnValue(mockUnsubscribe);
-  mockSignOut.mockReset().mockResolvedValue(undefined);
+  mockOnAuthStateChange.mockClear();
   mockUnsubscribe.mockReset();
-  // Stub window.location so we can assert href assignment on signOut.
+  mockSignOut.mockReset().mockResolvedValue(undefined);
+  capturedListener = null;
   delete (window as unknown as { location?: unknown }).location;
   (window as unknown as { location: { href: string } }).location = { href: "/" };
 });
@@ -52,49 +71,48 @@ afterEach(() => {
 });
 
 describe("AuthPill — anonymous", () => {
-  test("renders Sign in link to /login when no user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
+  test("renders Sign in link to /login when INITIAL_SESSION null", () => {
     render(<AuthPill />);
-    await waitFor(() => {
-      const link = screen.getByRole("link", { name: /Sign in/i });
-      expect(link).toHaveAttribute("href", "/login");
-    });
+    fireAuthEvent("INITIAL_SESSION", null);
+    const link = screen.getByRole("link", { name: /Sign in/i });
+    expect(link).toHaveAttribute("href", "/login");
+  });
+
+  test("renders Sign in link before any auth event fires", () => {
+    render(<AuthPill />);
+    expect(screen.getByRole("link", { name: /Sign in/i })).toHaveAttribute(
+      "href",
+      "/login",
+    );
   });
 });
 
 describe("AuthPill — signed-in", () => {
-  test("renders email + logout icon when user is loaded", async () => {
-    mockGetUser.mockResolvedValueOnce({
-      data: { user: { id: "u-abc", email: "alex@example.com" } },
-    });
+  test("renders email + logout when INITIAL_SESSION has user", () => {
     render(<AuthPill />);
-    await waitFor(() => {
-      expect(screen.getByText("alex@example.com")).toBeInTheDocument();
+    fireAuthEvent("INITIAL_SESSION", {
+      user: { id: "u-abc", email: "alex@example.com" },
     });
+    expect(screen.getByText("alex@example.com")).toBeInTheDocument();
     expect(screen.getByRole("button")).toHaveAttribute(
       "title",
       expect.stringContaining("alex@example.com"),
     );
   });
 
-  test("user with null email falls back to 'Signed in' label", async () => {
-    mockGetUser.mockResolvedValueOnce({
-      data: { user: { id: "u-no-email", email: null } },
-    });
+  test("user with null email falls back to 'Signed in' label", () => {
     render(<AuthPill />);
-    await waitFor(() => {
-      expect(screen.getByText(/Signed in/i)).toBeInTheDocument();
+    fireAuthEvent("INITIAL_SESSION", {
+      user: { id: "u-no-email", email: null },
     });
+    expect(screen.getByText(/Signed in/i)).toBeInTheDocument();
   });
 
   test("logout button click → signOut + window.location='/'", async () => {
-    mockGetUser.mockResolvedValueOnce({
-      data: { user: { id: "u-abc", email: "alex@example.com" } },
-    });
     const user = userEvent.setup();
     render(<AuthPill />);
-    await waitFor(() => {
-      expect(screen.getByText("alex@example.com")).toBeInTheDocument();
+    fireAuthEvent("INITIAL_SESSION", {
+      user: { id: "u-abc", email: "alex@example.com" },
     });
     await user.click(screen.getByRole("button"));
     await waitFor(() => {
@@ -104,19 +122,24 @@ describe("AuthPill — signed-in", () => {
   });
 });
 
-describe("AuthPill — auth-change", () => {
-  test("onAuthChange null flips signed-in pill back to anonymous", async () => {
-    mockGetUser.mockResolvedValueOnce({
-      data: { user: { id: "u-abc", email: "alex@example.com" } },
-    });
+describe("AuthPill — auth-state transitions", () => {
+  test("SIGNED_OUT event flips signed-in pill back to anonymous", () => {
     render(<AuthPill />);
-    await waitFor(() => {
-      expect(screen.getByText("alex@example.com")).toBeInTheDocument();
+    fireAuthEvent("INITIAL_SESSION", {
+      user: { id: "u-abc", email: "alex@example.com" },
     });
-    const cb = mockOnAuthChange.mock.calls[0][0] as (id: string | null) => Promise<void>;
-    await cb(null);
-    await waitFor(() => {
-      expect(screen.getByRole("link", { name: /Sign in/i })).toBeInTheDocument();
+    expect(screen.getByText("alex@example.com")).toBeInTheDocument();
+    fireAuthEvent("SIGNED_OUT", null);
+    expect(screen.getByRole("link", { name: /Sign in/i })).toBeInTheDocument();
+  });
+
+  test("SIGNED_IN event after anonymous mount flips to signed-in", () => {
+    render(<AuthPill />);
+    fireAuthEvent("INITIAL_SESSION", null);
+    expect(screen.getByRole("link", { name: /Sign in/i })).toBeInTheDocument();
+    fireAuthEvent("SIGNED_IN", {
+      user: { id: "u-late", email: "late@example.com" },
     });
+    expect(screen.getByText("late@example.com")).toBeInTheDocument();
   });
 });

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { LogIn, LogOut } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { onAuthChange, signOut } from "@/lib/auth";
+import { signOut } from "@/lib/auth";
 
 type Session = { id: string; email: string | null } | null;
 
@@ -12,35 +12,24 @@ type Session = { id: string; email: string | null } | null;
  * - Signed in: shows truncated email + sign-out icon.
  * - Anonymous: shows "Sign in" link to /login.
  *
- * Updates via onAuthChange so the pill reflects sign-out instantly.
+ * Subscribes to `supabase.auth.onAuthStateChange` directly so the
+ * INITIAL_SESSION event delivers the cached session on mount
+ * without an HTTP round-trip, avoiding the race where
+ * `detectSessionInUrl` parses a post-OAuth/magic-link hash after
+ * a getUser() call has already returned null.
  */
 export function AuthPill() {
   const [session, setSession] = useState<Session>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    void supabase.auth.getUser().then(({ data }) => {
-      if (cancelled) return;
-      if (data?.user) {
-        setSession({ id: data.user.id, email: data.user.email ?? null });
+    const { data } = supabase.auth.onAuthStateChange((_event, sess) => {
+      if (sess?.user) {
+        setSession({ id: sess.user.id, email: sess.user.email ?? null });
       } else {
         setSession(null);
       }
     });
-    const unsubscribe = onAuthChange(async (id) => {
-      if (!id) {
-        setSession(null);
-        return;
-      }
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) {
-        setSession({ id: data.user.id, email: data.user.email ?? null });
-      }
-    });
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
+    return () => data.subscription.unsubscribe();
   }, []);
 
   async function onSignOut() {
