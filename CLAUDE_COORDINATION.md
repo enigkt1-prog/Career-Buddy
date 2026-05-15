@@ -244,6 +244,59 @@ proceeds with 7–9 immediately on top.
 
 ## Last sync
 
+- 2026-05-15 (round 16 — A) — auth wrap-up: stale-session fix +
+  Outlook visibility gate.
+
+  - `80b8f98` fix(auth): AuthPill stale-session race —
+    subscribe via onAuthStateChange. Root cause: `getUser()`
+    HTTP round-trip resolved before `detectSessionInUrl` parsed
+    the post-OAuth / magic-link URL hash → initial call returned
+    null. The `onAuthStateChange` subscription registered inside
+    useEffect attached after detectSessionInUrl may have already
+    fired SIGNED_IN, so the event was missed. Switched to
+    subscribing to `supabase.auth.onAuthStateChange` directly:
+    INITIAL_SESSION delivers the cached session on mount (no HTTP),
+    SIGNED_IN/OUT/TOKEN_REFRESHED keep the pill in sync.
+  - `644b84c` feat(profile): Outlook OAuth visibility gate via
+    VITE_OUTLOOK_OAUTH_ENABLED. Hidden by default; flip to "1" or
+    "true" once the Azure Entra app + edge function secrets ship.
+    `.env.example` documents the flag.
+
+  Tests: 363 passing (was 358; +7 AuthPill -5 old AuthPill stub,
+  +3 visibility gate, +2 round-14 EmailAccounts coverage that B
+  expanded between rounds). tsc clean. Live `/login` HTTP/2 200.
+
+  **Cross-territory bends (flagged for B):**
+  - `AuthPill.test.tsx` was rewritten by A (B's territory per the
+    boundary table). The new tests capture the
+    `supabase.auth.onAuthStateChange` listener via mock and fire
+    INITIAL_SESSION / SIGNED_IN / SIGNED_OUT events directly. B
+    may want to expand to TOKEN_REFRESHED + USER_UPDATED coverage
+    if those edge cases bite.
+  - `EmailAccounts.test.tsx`: A added a default
+    `vi.stubEnv("VITE_OUTLOOK_OAUTH_ENABLED", "1")` in the
+    suite-wide beforeEach so the round-14 Outlook-button
+    coverage keeps passing, plus a new "Outlook visibility gate"
+    describe-block. Lightweight bend.
+
+  **PHASE_AUTH_REQUIRED=1 post-flip validation (task 3) — pending
+  user action.** User flips the env var in Supabase Dashboard →
+  Edge Functions → Secrets, then asks for the smoke test. Not
+  done in this round; ready to run when user signals.
+
+  **Open product asks (deferred, full spec at
+  `/Users/troelsenigk/Startup_Ideation_Vault/01_Ideas/Career_Buddy_Agentic_Chat_And_CV_Dashboard.md`):**
+  Both backend-heavy on B's side. After user push approval:
+  - CV radar dashboard — A half-day UI + 6-8-axis spider chart;
+    B 2h `analyze-cv` schema bump for structured strengths /
+    weaknesses / gaps. **Revive B for the schema piece first.**
+  - Agentic Buddy chat — B 1-2 day tool-call layer on
+    `supabase/functions/buddy-chat` (NL → app-state actions
+    with confirm-pill); A 1 day voice input + STT brand
+    disambig + UI. **Revive B for the tool layer first.**
+
+  **Two commits ahead of origin, pending user push approval.**
+
 - 2026-05-11 morning (round 14 — A) — login UI lane shipped.
   Six tasks from B's round-13 sync ("Sync round 13 (B → A) — multi-
   user cutover backend done, UI lane is yours") all done.
