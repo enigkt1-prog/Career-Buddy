@@ -29,11 +29,11 @@ describe("migrateProfile", () => {
 
   test("preserves typed string fields", () => {
     const out = migrateProfile({
-      name: "Troels",
+      name: "Alex Candidate",
       target_role: "Founders Associate",
       headline: "MBA",
     });
-    expect(out.name).toBe("Troels");
+    expect(out.name).toBe("Alex Candidate");
     expect(out.target_role).toBe("Founders Associate");
     expect(out.headline).toBe("MBA");
   });
@@ -146,7 +146,7 @@ describe("loadState", () => {
             fit: 7,
           },
         ],
-        profile: { name: "Troels", built: true },
+        profile: { name: "Alex Candidate", built: true },
         sync_completed: true,
         dismissed_urls: ["http://example.com/job/1"],
       }),
@@ -154,7 +154,7 @@ describe("loadState", () => {
     const out = loadState();
     expect(out.applications).toHaveLength(1);
     expect(out.applications[0].id).toBe("a1");
-    expect(out.profile.name).toBe("Troels");
+    expect(out.profile.name).toBe("Alex Candidate");
     expect(out.profile.built).toBe(true);
     expect(out.sync_completed).toBe(true);
     expect(out.dismissed_urls).toEqual(["http://example.com/job/1"]);

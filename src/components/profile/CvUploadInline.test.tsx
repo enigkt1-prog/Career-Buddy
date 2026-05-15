@@ -86,7 +86,7 @@ describe("CvUploadInline — happy path", () => {
       data: {
         analysis: {
           summary: "Strong B2B sales background.",
-          name: "Troels",
+          name: "Alex Candidate",
           strengths: ["B2B sales"],
           skills: [{ name: "Python", level: "advanced" }],
         },

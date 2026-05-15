@@ -1,120 +1,197 @@
 # Career-Buddy
 
-> Land your first startup role. Track applications, learn what works, find roles that fit.
+An AI-native career platform for people targeting **early-stage startup roles** (Founders Associate, BizOps, Investment Analyst, GTM). Aggregates roles from VC career pages, ATS systems, and aggregators into a single feed, classifies them by function and seniority, and helps a candidate run a structured job-search loop on top of it.
 
-> **Monorepo as of 2026-05-09.** Frontend (Lovable / TanStack Start) lives at the repo root. Python backend (Layer-1 scraper) in [`backend/`](backend/). Both share the same Supabase project via [`data/migrations/`](data/migrations/). Bidirectional Lovable ↔ GitHub sync expects the frontend at root, which is why the layout is asymmetric (frontend at root, backend in a subdir).
+Career-Buddy is an **early build, actively developed**. Some of what you see here works end-to-end today; some is in progress; some is planned. The repository is honest about which is which.
 
-**ICP:** Business-background grads (Bucerius, CDTM, CLSBE, INSEAD, HEC, LBS, WHU) with 0–2y exp who want to break into early-stage startups via **Founders Associate / BizOps / Strategy / BD** roles. Not engineering. Not senior.
+---
 
-**The Pain:**
-- 30+ FA-roles posted across VC career-pages, startup careers, LinkedIn-stealth, Antler/EF cohorts
-- No central tracker — every application leaves traces in Gmail, LinkedIn-DMs, WhatsApp, Notion
-- You forget who you applied to, when to follow up, what got responses
-- No self-knowledge layer: which role-types respond, which don't, why
-- Tools like Clera (Junior-Job-Board) have WhatsApp-chat that forgets you sent a CV — dumb
+## Why this matters
 
-**Long-term Vision (Layer 1–3):** see [`docs/PRD.md`](docs/PRD.md). End-state = persistent **Career Buddy** with context-flywheel-moat: app remembers everything about your career, advises on switching, salary negotiation, headhunter-connect, growth-recommendations.
+Breaking into early-stage startups as a generalist is a structurally broken job search:
+
+- Open Founders Associate / BizOps / GTM-Associate roles are scattered across ~200 VC career pages, ~10 ATS systems, LinkedIn stealth posts, Antler/EF cohorts, and accelerator portfolios. No single feed covers them.
+- Candidates lose track of their own pipeline across Gmail, LinkedIn DMs, Notion, and WhatsApp.
+- Existing junior-job boards are chat-shaped but stateless: they forget context between messages, so the user re-explains themselves every session.
+
+Career-Buddy is an attempt to combine **broad-coverage ingestion** (scraper + classifier) with **stateful candidate context** (Supabase-backed profile, applications, events) so the same loop can both surface roles and learn what's working.
+
+---
+
+## Current state
+
+| Area | Status |
+|---|---|
+| Frontend (TanStack Start + Vite, deployed on Cloudflare Workers) | Live |
+| Supabase Postgres schema + 17 numbered migrations | In place |
+| VC + ATS scraper (Greenhouse, Lever, Ashby, Workable, Personio, Recruitee, Workday, SmartRecruiters + aggregator adapters) | Working, expanding coverage |
+| Classifier pipeline (function, seniority, location, work-mode) | Working on the ingested corpus |
+| Active-jobs corpus | Tens of thousands of rows, refreshed by recurring scrape |
+| Multi-user auth (Supabase magic link + OAuth) | Shipped, hardening |
+| Email-account OAuth (Gmail, Outlook) for application tracking | Phase 1 wired, deeper inbox parsing planned |
+| CV upload + parser | Shipped end-to-end in mock mode; live mode wired through `analyze-cv` Edge Function |
+| AI fit analysis + draft messages (cover letter, outreach, follow-up) | Edge Function shipped, UI surfaces in iteration |
+| CV-radar dashboard, agentic chat write-actions, growth recommender | Planned |
+
+The product is **not finished**. It is the kind of project a generalist operator builds while figuring out where the real pain sits.
+
+---
+
+## Architecture
+
+```
+                     ┌──────────────────────────────────────┐
+                     │           Job sources                │
+                     │  VC career pages · ATS APIs ·        │
+                     │  aggregators (RemoteOK, WWR) ·       │
+                     │  accelerator portfolios (YC, Antler) │
+                     └──────────────────┬───────────────────┘
+                                        │
+                          ┌─────────────▼──────────────┐
+                          │   Python scraper (uv)      │
+                          │   per-source adapters →    │
+                          │   normalize → validate     │
+                          └─────────────┬──────────────┘
+                                        │
+                          ┌─────────────▼──────────────┐
+                          │   Classifier pipeline      │
+                          │   function · seniority ·   │
+                          │   city · work-mode         │
+                          └─────────────┬──────────────┘
+                                        │
+                          ┌─────────────▼──────────────┐
+                          │   Supabase Postgres        │
+                          │   (vcs · jobs · users ·    │
+                          │   applications · events)   │
+                          └─────┬──────────────┬───────┘
+                                │              │
+            ┌───────────────────▼──┐      ┌────▼─────────────────────┐
+            │  Frontend (Vite +    │      │  Supabase Edge Functions │
+            │  TanStack Start)     │      │  analyze-cv · match-job  │
+            │  on Cloudflare Wkrs  │      │  draft-message · chat    │
+            └──────────────────────┘      └──────────────────────────┘
+```
+
+Supabase is the API boundary. The scraper writes to Postgres; the frontend reads from Postgres and writes user-side state; Edge Functions sit between when CPU-bound or LLM-backed work needs server-side execution. There is no direct backend → frontend network call.
+
+---
+
+## Tech stack
+
+- **Frontend**: TypeScript, React, TanStack Start, Vite, Tailwind, shadcn/ui
+- **Backend (scraper)**: Python 3.11, `uv`, Pydantic, ruff + mypy strict, pytest
+- **Database**: Supabase Postgres, numbered SQL migrations, row-level security
+- **Serverless**: Supabase Edge Functions (Deno)
+- **Deployment**: Cloudflare Workers (frontend), Supabase managed (DB + Edge Functions)
+- **LLM providers**: Anthropic, OpenAI, Google (Gemini) — used through narrow server-side functions, not the browser
+- **Tests**: ~140 backend test functions, ~350 frontend test cases (Vitest + RTL), Playwright smoke routes
+
+---
 
 ## Repository layout
 
 ```
 .
-├── package.json                  TanStack Start + Vite frontend (Lovable)
-├── vite.config.ts                Vite config
-├── wrangler.jsonc                Cloudflare Workers deploy
-├── tsconfig.json
-├── components.json               shadcn-ui config
-├── public/                       static assets + mock data fixtures
-├── src/
-│   ├── routes/                   TanStack file-based routes
-│   ├── components/
-│   │   ├── CareerBuddy.tsx       main app
-│   │   └── ui/                   shadcn primitives
-│   ├── integrations/supabase/    Supabase client (server + browser)
-│   └── lib/                      utilities (cv-parser, error capture)
+├── src/                          Frontend (TanStack Start)
+│   ├── routes/                   File-based routes
+│   ├── components/               UI: career-buddy, cinema, profile
+│   ├── integrations/supabase/    Browser + server Supabase clients
+│   └── lib/                      Domain helpers (cv-parser, profile-store, state)
 ├── supabase/
 │   ├── config.toml
-│   └── functions/analyze-cv/     Edge Function — CV analysis
-├── backend/                      Python 3.11 + uv Layer-1 scraper
-│   ├── pyproject.toml
-│   ├── career_buddy_scraper/
-│   │   ├── ats/                  Greenhouse, Lever, Ashby, Workable, Personio,
-│   │   │                         Recruitee, Gemini-fallback adapters
-│   │   ├── cli/                  scrape, classify, classify_tier2, discover_slugs,
-│   │   │                         migrate, preflight, report, seed_notion
-│   │   ├── sources/              Notion-export loader
-│   │   ├── http.py               RateLimitedClient (token bucket + cache)
-│   │   ├── orchestrator.py       per-VC fetch → normalize → validate → upsert
-│   │   ├── jobs_repo.py          Postgres upsert + mark-stale
-│   │   ├── master_list.py        VC dedupe + upsert
-│   │   ├── models.py             Pydantic schemas
-│   │   ├── classify.py           Tier-1 regex
-│   │   └── gemini_scraper.py     Free-tier LLM extractor
-│   └── tests/                    56 tests, ruff clean, mypy strict clean
+│   └── functions/                Edge Functions: analyze-cv, match-job, chat,
+│                                 draft-message, email-oauth-{start,callback}
+├── backend/                      Python 3.11 scraper + classifier
+│   └── career_buddy_scraper/
+│       ├── ats/                  ATS adapters (Greenhouse, Lever, Ashby,
+│       │                         Workable, Personio, Recruitee, Workday,
+│       │                         SmartRecruiters, aggregators, Gemini fallback)
+│       ├── cli/                  scrape, classify, discover_slugs, migrate,
+│       │                         preflight, report
+│       ├── sources/              VC + accelerator seeds
+│       ├── orchestrator.py       per-source fetch → normalize → validate → upsert
+│       ├── jobs_repo.py          Postgres upsert + mark-stale
+│       ├── classify.py           Regex Tier-1 classifier
+│       └── gemini_scraper.py     LLM fallback extractor
 ├── data/
-│   ├── schema.sql                legacy single-shot baseline
-│   └── migrations/               canonical migration history
+│   ├── migrations/               Canonical migration history (17 files)
+│   ├── schema.sql                Baseline reference
+│   └── *.json / *.txt            Anonymized fixtures for mock mode
 ├── docs/
-│   ├── brief.md / build.md / design.md           specs
-│   ├── PRD.md / DEMO.md                          long-form
-│   ├── LOVABLE_PROMPT.md / refinement-prompts.md Lovable instructions
-│   ├── scraper-plan.md                           Layer-1 architecture
-│   ├── HANDOFF_GEMINI_SCRAPER_2026-05-09.md      hand-off note
-│   └── decisions/                                ADRs (0001–0004)
-├── artifacts/                    gitignored — runs, reports, caches
-├── .env.example                  shared env (backend + frontend Supabase keys)
-└── .gitignore
+│   ├── PRD.md / brief.md / build.md / design.md
+│   ├── scraper-plan.md
+│   └── decisions/                Architecture Decision Records (ADR-0001 … 0004)
+├── public/                       Static assets
+├── .env.example                  Shared env template (frontend + backend)
+└── LICENSE
 ```
 
-## How frontend and backend connect
+---
 
-Both layers talk to **one Supabase Postgres project**:
+## Quickstart
 
-- **Backend** (`backend/career_buddy_scraper/`) writes to `vcs` and `jobs` via the migration runner + Layer-1 scraper.
-- **Frontend** (`src/`) reads from `vcs` and `jobs` (and writes to `users`, `applications`, `events` for end-user actions) via the Supabase JS client.
-- **Edge Functions** (`supabase/functions/`) sit between when CPU-bound work needs to run server-side (CV analysis).
-- No backend → frontend network call. Supabase is the API boundary.
-
-## Frontend setup
+### Frontend
 
 ```bash
 bun install                       # or npm install
 cp .env.example .env              # fill in VITE_SUPABASE_* keys
-bun run dev                       # vite dev server
+bun run dev                       # vite dev server on http://localhost:5173
 ```
 
-## Backend setup
+### Backend (scraper)
 
 ```bash
 cd backend
 uv sync                           # install Python deps
-uv run pytest                     # 56 tests
-uv run python -m career_buddy_scraper.cli.scrape   # live scrape
+uv run pytest                     # run test suite
+uv run python -m career_buddy_scraper.cli.scrape   # live scrape (writes to Supabase)
 ```
+
+### Supabase
+
+Migrations are numbered SQL files in `data/migrations/`. Apply via the Supabase SQL editor or the CLI; see `docs/SETUP_MASTER_KEY.md` for the OAuth-token encryption setup.
+
+---
 
 ## Roadmap
 
-- [x] Layer 0 — Hackathon MVP (mock-mode demo at Lovable Future Founders Series 2026-05-07)
-- [x] Layer 1 — Real Gmail-OAuth + LinkedIn-sync + VC-scraper (3849 jobs live in Supabase)
-- [ ] Layer 2 — CV-Coach + Cover-Letter + Interview-Prep + Growth-Recommender
-- [ ] Layer 3 — Career Buddy (full vision: switch-timing, salary-negotiation, headhunter-broker, life-stage-aware)
+- [x] Layer 0 — Mock-mode MVP with end-to-end happy path
+- [x] Layer 1 — Live VC + ATS scraper, classifier pipeline, Supabase as source of truth
+- [ ] Layer 2 — CV coach, cover-letter + outreach drafting, interview prep, growth recommender
+- [ ] Layer 3 — Persistent Career Buddy: switch-timing advice, salary negotiation, headhunter brokering, life-stage-aware coaching
+
+Treat the roadmap as a direction, not a commitment. Layers 2 and 3 will likely change as the candidate-side loop teaches us what actually moves the needle.
+
+---
+
+## Responsible data use
+
+This repository does **not** contain real user data, real CVs, real email contents, real credentials, or proprietary datasets. The fixtures in `data/sample_cv.txt` and `data/mock_emails.json` are anonymized templates used by the frontend's mock mode and the parser tests.
+
+Future features that involve real user data — CV upload, email-account OAuth, application tracking — will require:
+
+- Explicit user consent on connect (per provider, per scope)
+- Encryption at rest for sensitive tokens (already implemented for OAuth refresh tokens via Supabase Vault + pgcrypto; see `docs/SETUP_MASTER_KEY.md`)
+- Per-user data deletion, exported on request
+- Row-level security on every multi-user table
+- LLM calls scoped to the minimum payload needed and routed through server-side Edge Functions, never the browser
+
+If you find a privacy or security concern, please open a GitHub issue or email the maintainer.
+
+---
 
 ## Project documentation
 
 | File | Purpose |
 |---|---|
-| [`docs/brief.md`](docs/brief.md) | Product brief: problem, primary user, core job, success criteria |
-| [`docs/build.md`](docs/build.md) | Build scope, phased priority, screens, features, acceptance criteria |
-| [`docs/design.md`](docs/design.md) | Visual direction, design tokens, motion |
-| [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) | Stable project knowledge for Lovable's project memory |
-| [`docs/LOVABLE_PROMPT.md`](docs/LOVABLE_PROMPT.md) | Canonical initial-generation prompt for Lovable |
-| [`docs/refinement-prompts.md`](docs/refinement-prompts.md) | Iterative prompts to fix specific Lovable misfires |
-| [`docs/project-knowledge.md`](docs/project-knowledge.md) | The Project Knowledge prompt to paste into Lovable settings |
-| [`docs/scraper-plan.md`](docs/scraper-plan.md) | Layer-1 VC + portfolio scraper architecture |
-| [`docs/HANDOFF_GEMINI_SCRAPER_2026-05-09.md`](docs/HANDOFF_GEMINI_SCRAPER_2026-05-09.md) | Gemini scraper hand-off note |
-| [`docs/PRD.md`](docs/PRD.md) | Long-form PRD covering Layers 0–3 |
-| [`docs/DEMO.md`](docs/DEMO.md) | Demo script / talk track |
-| [`docs/decisions/`](docs/decisions/) | Architecture Decision Records (ADRs) — see [the index](docs/decisions/README.md) |
+| [`docs/PRD.md`](docs/PRD.md) | Long-form product requirements |
+| [`docs/brief.md`](docs/brief.md) | Problem, primary user, core job, success criteria |
+| [`docs/build.md`](docs/build.md) | Build scope and phased priority |
+| [`docs/design.md`](docs/design.md) | Visual direction and design tokens |
+| [`docs/scraper-plan.md`](docs/scraper-plan.md) | Scraper architecture |
+| [`docs/decisions/`](docs/decisions/) | Architecture Decision Records |
+
+---
 
 ## License
 

@@ -69,17 +69,17 @@ Single-page app. No routing. Five sections stacked vertically (see `design.md` l
 - Submit button: `"Build profile"`.
 - On submit (any non-empty text): 600ms spinner inside button → render canned assistant reply in a chat bubble below the input → render Profile Card (expanded form).
 - **Canned assistant reply (verbatim):**
-  > "Got it. Target: Founders Associate at AI-startups + Operating Associate / BizOps / Strategy roles at early-stage startups. Geo: Berlin / Remote-DACH. Background: CLSBE Master, business track, 0–2y experience."
+  > "Got it. Target: Founders Associate at AI-startups + Operating Associate / BizOps / Strategy roles at early-stage startups. Geo: Berlin / Remote-DACH. Background: Strategy graduate, business track, 0–2y experience."
 
 ### F2 — Profile card (Phase 1)
 
 **Expanded form** (default after first submit, and on reload if Sync hasn't run):
 
 ```
-Name:        Troels K.
+Name:        Sample Candidate
 Target Role: Founders Associate / Operating Associate
 Target Geo:  DACH (Berlin / Remote)
-Background:  CLSBE Master, business track
+Background:  Strategy graduate, business track
 Strong:      B2B-sales, structured thinking
 Gap:         SaaS-metrics, ML fundamentals
 ```
@@ -87,7 +87,7 @@ Gap:         SaaS-metrics, ML fundamentals
 **Collapsed form** (after Sync runs once):
 
 ```
-Troels K. · Founders Associate · Berlin / Remote-DACH · CLSBE Master
+Sample Candidate · Founders Associate · Berlin / Remote-DACH · Strategy graduate
 ```
 
 with an `"edit profile"` link (`text-xs`, accent-colored, underline) that re-expands the card.

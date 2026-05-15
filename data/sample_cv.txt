@@ -1,22 +1,22 @@
-TROELS ENIGK
+SAMPLE CANDIDATE
 
 EDUCATION
-Católica Lisbon School of Business & Economics (CLSBE), Master in Management, 2024–2026
+European Business School, Master in Management, 2024–2026
 - Master Thesis: Internationalization patterns of European AI-startups (Crunchbase data analysis)
 - Coursework: Strategic Management, Corporate Finance, Quantitative Methods, Innovation & Entrepreneurship
 - Specialization: Strategy + Entrepreneurship
 
-University of Duisburg-Essen, Bachelor in Business Administration, 2020–2023
+Continental University, Bachelor in Business Administration, 2020–2023
 
 EXPERIENCE
-Mercanis (B2B SaaS — procurement-tech), Working Student / Project, 2024–2025
+B2B SaaS Company (procurement-tech), Working Student / Project, 2024–2025
 - Drove deal-sourcing for DACH mid-market SaaS-procurement clients
 - Built sales-enablement materials for AE-team
 
-MulTra Multiplex Transfer GmbH, Working Student, 2021–2023
+Logistics SME, Working Student, 2021–2023
 - Operational support across logistics + business-development functions
 
-Founder of personal projects in commerce-infra (Fitly — foot/shoe scan engine for marketplaces)
+Founder of personal projects in commerce-infra (scan-engine prototype for marketplaces)
 
 SKILLS
 - Languages: German (native), English (C2), Portuguese (B1)
@@ -24,9 +24,9 @@ SKILLS
 - Soft: structured thinking, stakeholder communication, hustle
 
 INTERESTS
-- AI-startup ecosystem, Vertical-AI theses, on-device-AI, founder-tooling
-- Active learner: Sequoia/a16z/NFX content, Lovable/Anthropic tooling
-- Building: ideation-engine for systematic startup-thesis development
+- AI-startup ecosystem, vertical-AI theses, on-device-AI, founder-tooling
 
 LOOKING FOR
 Founders Associate / Investment Analyst / BizOps Associate at AI-native early-stage startup or VC. DACH-based or remote-EU. Start: ASAP.
+
+Note: this is an anonymized fixture used by the frontend mock mode for CV-parser development. Do not treat as a real candidate profile.

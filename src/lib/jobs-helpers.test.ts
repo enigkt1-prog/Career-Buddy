@@ -88,7 +88,7 @@ describe("profileCompleteness", () => {
 
   test("fully populated → 100", () => {
     const out = profileCompleteness({
-      name: "Troels",
+      name: "Alex Candidate",
       headline: "MBA",
       target_role: "Founders Associate",
       target_geo: "Berlin",

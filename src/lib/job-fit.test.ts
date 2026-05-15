@@ -18,7 +18,7 @@ const baseProfile: FitProfile = {
   target_role: "Founders Associate",
   target_role_categories: ["founders-associate", "bizops", "strategy"],
   location_preferences: ["Berlin", "Remote-DACH"],
-  headline: "CLSBE Master, ex-BDR",
+  headline: "Strategy graduate, ex-BDR",
   work_history: [
     {
       role: "BDR",
@@ -349,7 +349,7 @@ describe("fitWhy", () => {
 describe("buildProfileTokens", () => {
   test("includes strengths + work-history role + bullets + headline + target_role", () => {
     const out = buildProfileTokens(baseProfile);
-    expect(out.has("clsbe")).toBe(true);
+    expect(out.has("strategy")).toBe(true);
     expect(out.has("founders")).toBe(true);
     expect(out.has("enterprise")).toBe(true);
     expect(out.has("pipeline")).toBe(true);

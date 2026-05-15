@@ -185,7 +185,7 @@ Save jeden.
 Im terminal:
 
 ```bash
-cd /Users/troelsenigk/fa-track
+cd /path/to/career-buddy
 npx supabase functions deploy email-oauth-start
 npx supabase functions deploy email-oauth-callback
 ```

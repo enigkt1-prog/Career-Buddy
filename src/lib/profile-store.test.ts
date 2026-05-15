@@ -251,8 +251,8 @@ const sampleAnalysis: CvAnalysisResponse = {
   recommendations: ["Apply to BizOps + Strategy"],
   target_role_categories: ["bizops", "strategy"],
   location_preferences: ["Berlin"],
-  name: "Troels Enigk",
-  headline: "CLSBE Master, ex-BDR",
+  name: "Sample Candidate",
+  headline: "Strategy graduate, ex-BDR",
   skills: [
     { name: "Python", level: "advanced", years: 4 },
     { name: "SQL", level: "expert", years: 6 },
@@ -284,8 +284,8 @@ describe("setProfileFromAnalysis", () => {
     const [row, opts] = mockUpsert.mock.calls[0];
     expect(opts).toEqual({ onConflict: "user_id", ignoreDuplicates: false });
     expect(row.user_id).toBe("u-signed-in");
-    expect(row.name).toBe("Troels Enigk");
-    expect(row.headline).toBe("CLSBE Master, ex-BDR");
+    expect(row.name).toBe("Sample Candidate");
+    expect(row.headline).toBe("Strategy graduate, ex-BDR");
     expect(row.skills).toEqual(sampleAnalysis.skills);
     expect(row.target_role_categories).toEqual(["bizops", "strategy"]);
     expect(row.location_preferences).toEqual(["Berlin"]);
@@ -297,7 +297,7 @@ describe("setProfileFromAnalysis", () => {
     await setProfileFromAnalysis(sampleAnalysis, "cv.pdf");
     expect(mockUpsert).not.toHaveBeenCalled();
     const state = loadCareerBuddyState();
-    expect(state.profile?.name).toBe("Troels Enigk");
+    expect(state.profile?.name).toBe("Sample Candidate");
   });
 
   test("Supabase failure does not throw; localStorage still saved", async () => {
@@ -306,7 +306,7 @@ describe("setProfileFromAnalysis", () => {
       setProfileFromAnalysis(sampleAnalysis, "cv.pdf"),
     ).resolves.toBeUndefined();
     const state = loadCareerBuddyState();
-    expect(state.profile?.name).toBe("Troels Enigk");
+    expect(state.profile?.name).toBe("Sample Candidate");
   });
 });
 

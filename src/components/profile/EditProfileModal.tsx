@@ -99,7 +99,7 @@ export function EditProfileModal({
               <input className="w-full border rounded-lg px-3 py-2 text-sm" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
             </Field>
             <Field label="Headline (one-line pitch)">
-              <input className="w-full border rounded-lg px-3 py-2 text-sm" value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="e.g. CLSBE Master · B2B-sales · operator-in-training" />
+              <input className="w-full border rounded-lg px-3 py-2 text-sm" value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="e.g. Strategy graduate · B2B-sales · operator-in-training" />
             </Field>
             <Field label="Target role">
               <input className="w-full border rounded-lg px-3 py-2 text-sm" value={targetRole} onChange={(e) => setTargetRole(e.target.value)} />

@@ -24,9 +24,9 @@ describe("loadCareerBuddyState", () => {
   test("returns parsed state when present", () => {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ profile: { name: "Troels" } }),
+      JSON.stringify({ profile: { name: "Alex Candidate" } }),
     );
-    expect(loadCareerBuddyState()).toEqual({ profile: { name: "Troels" } });
+    expect(loadCareerBuddyState()).toEqual({ profile: { name: "Alex Candidate" } });
   });
 
   test("returns {} on corrupted JSON", () => {
@@ -71,8 +71,8 @@ describe("mergeAnalysisIntoState", () => {
     recommendations: ["Apply to BizOps + Strategy"],
     target_role_categories: ["bizops", "strategy"],
     location_preferences: ["Berlin", "Munich"],
-    name: "  Troels Enigk  ",
-    headline: "  CLSBE Master, ex-BDR  ",
+    name: "  Sample Candidate  ",
+    headline: "  Strategy graduate, ex-BDR  ",
   };
 
   test("flips built + cv_analyzed flags", () => {
@@ -83,8 +83,8 @@ describe("mergeAnalysisIntoState", () => {
 
   test("trims name + headline before assigning", () => {
     const out = mergeAnalysisIntoState({}, baseAnalysis, "cv.pdf");
-    expect(out.profile?.name).toBe("Troels Enigk");
-    expect(out.profile?.headline).toBe("CLSBE Master, ex-BDR");
+    expect(out.profile?.name).toBe("Sample Candidate");
+    expect(out.profile?.headline).toBe("Strategy graduate, ex-BDR");
   });
 
   test("cv_filename stamped from caller", () => {
@@ -177,7 +177,7 @@ describe("mergeAnalysisIntoState", () => {
     const reloaded = loadCareerBuddyState();
     expect(reloaded.profile?.target_role).toBe("BizOps");
     expect(reloaded.profile?.cv_analyzed).toBe(true);
-    expect(reloaded.profile?.name).toBe("Troels Enigk");
+    expect(reloaded.profile?.name).toBe("Sample Candidate");
     expect(reloaded.profile?.strengths).toEqual(["B2B sales", "German native"]);
   });
 });

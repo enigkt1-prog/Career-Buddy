@@ -1,82 +1,82 @@
 [
   {
     "id": "e1",
-    "from": "marvin@pedlar.de",
+    "from": "alex@northstar-ventures.example",
     "to": "user@example.com",
-    "subject": "Re: Founders Associate Application — Pedlar",
+    "subject": "Re: Founders Associate Application — Northstar",
     "date": "2026-05-07T08:30:00Z",
-    "body": "Hi Troels, thank you for your application and the time you took for our calls. After much consideration, we've decided to move forward with another candidate whose profile aligns more closely with the operational scope of this role. We genuinely appreciated your enthusiasm and your CLSBE background. Best of luck with your search — feel free to stay in touch for future opportunities. Marvin",
+    "body": "Hi candidate, thank you for your application and the time you took for our calls. After much consideration, we've decided to move forward with another candidate whose profile aligns more closely with the operational scope of this role. We genuinely appreciated your enthusiasm. Best of luck with your search — feel free to stay in touch for future opportunities. Alex",
     "expected_classification": "rejection",
-    "matches_company": "Pedlar"
+    "matches_company": "Northstar Ventures"
   },
   {
     "id": "e2",
-    "from": "alberto@avi.vc",
+    "from": "jordan@apex-capital.example",
     "to": "user@example.com",
-    "subject": "Avi Investment Analyst — next steps",
+    "subject": "Apex Investment Analyst — next steps",
     "date": "2026-05-06T14:12:00Z",
-    "body": "Hi Troels, great chatting yesterday. We'd love to invite you to the next round — a deep-dive interview with our managing partner. Are you available Thursday 3pm CET? It will be ~60 minutes, focused on a market sizing case + portfolio review. Looking forward. Alberto",
+    "body": "Hi candidate, great chatting yesterday. We'd love to invite you to the next round — a deep-dive interview with our managing partner. Are you available Thursday 3pm CET? It will be ~60 minutes, focused on a market sizing case + portfolio review. Looking forward. Jordan",
     "expected_classification": "interview-invite",
-    "matches_company": "Avi"
+    "matches_company": "Apex Capital"
   },
   {
     "id": "e3",
-    "from": "careers@rust-fund.com",
+    "from": "careers@meridian-fund.example",
     "to": "user@example.com",
     "subject": "Application received — Operating Associate",
     "date": "2026-05-01T09:00:00Z",
-    "body": "Thank you for your application to the Operating Associate role at Rust. We'll review and get back within 2 weeks.",
+    "body": "Thank you for your application to the Operating Associate role at Meridian. We'll review and get back within 2 weeks.",
     "expected_classification": "confirmation",
-    "matches_company": "Rust"
+    "matches_company": "Meridian Fund"
   },
   {
     "id": "e4",
-    "from": "talent@picuscapital.com",
+    "from": "talent@orion-capital.example",
     "to": "user@example.com",
-    "subject": "Coffee chat — Picus Capital FA Program",
+    "subject": "Coffee chat — Orion Capital FA Program",
     "date": "2026-05-05T11:45:00Z",
-    "body": "Hi Troels, your application stood out. Before formal interviews, we'd love to set up an informal 30-min coffee chat to align expectations on the FA-Program. Suggest 3 slots next week and our team-lead will pick. Cheers, Talent Team",
+    "body": "Hi candidate, your application stood out. Before formal interviews, we'd love to set up an informal 30-min coffee chat to align expectations on the FA-Program. Suggest 3 slots next week and our team-lead will pick. Cheers, Talent Team",
     "expected_classification": "interview-invite",
-    "matches_company": "Picus Capital"
+    "matches_company": "Orion Capital"
   },
   {
     "id": "e5",
-    "from": "team@cherry.vc",
+    "from": "team@sienna-ventures.example",
     "to": "user@example.com",
-    "subject": "Cherry Ventures Investment Analyst",
+    "subject": "Sienna Ventures Investment Analyst",
     "date": "2026-05-03T16:00:00Z",
-    "body": "Dear Troels, thanks for applying. While your background is impressive, we're looking for someone with deeper SaaS-metrics expertise for this specific role. We'll keep your CV on file and reach out if a better fit opens. Best, Cherry Team",
+    "body": "Dear candidate, thanks for applying. While your background is impressive, we're looking for someone with deeper SaaS-metrics expertise for this specific role. We'll keep your CV on file and reach out if a better fit opens. Best, Sienna Team",
     "expected_classification": "rejection",
-    "matches_company": "Cherry Ventures"
+    "matches_company": "Sienna Ventures"
   },
   {
     "id": "e6",
-    "from": "kim@projecta.com",
+    "from": "sam@projectb.example",
     "to": "user@example.com",
     "subject": "Quick question on your CV",
     "date": "2026-05-06T10:00:00Z",
-    "body": "Hi Troels, reviewing your application — could you share a brief example of a B2B deal you led during your CLSBE projects? Even a 1-paragraph summary would help us assess fit faster. Thanks, Kim",
+    "body": "Hi candidate, reviewing your application — could you share a brief example of a B2B deal you led during your studies? Even a 1-paragraph summary would help us assess fit faster. Thanks, Sam",
     "expected_classification": "follow-up-question",
-    "matches_company": "Project A"
+    "matches_company": "Project B"
   },
   {
     "id": "e7",
-    "from": "noreply@earlybird.com",
+    "from": "noreply@harbor-vc.example",
     "to": "user@example.com",
-    "subject": "Earlybird Investment Analyst — application received",
+    "subject": "Harbor VC Investment Analyst — application received",
     "date": "2026-04-28T08:00:00Z",
-    "body": "Hi Troels, we've received your application. Our hiring process takes 4-6 weeks. We'll be in touch.",
+    "body": "Hi candidate, we've received your application. Our hiring process takes 4-6 weeks. We'll be in touch.",
     "expected_classification": "confirmation",
-    "matches_company": "Earlybird"
+    "matches_company": "Harbor VC"
   },
   {
     "id": "e8",
-    "from": "hr@speedinvest.com",
+    "from": "hr@vertex-capital.example",
     "to": "user@example.com",
-    "subject": "Offer — Speedinvest Investment Associate",
+    "subject": "Offer — Vertex Capital Investment Associate",
     "date": "2026-05-07T07:00:00Z",
-    "body": "Dear Troels, we are delighted to extend an offer for the Investment Associate role at Speedinvest, Berlin. Compensation: €52k base + €5k performance bonus + standard benefits. Start date: flexible. Please find the formal offer letter attached. We hope you'll join us. Sincerely, HR",
+    "body": "Dear candidate, we are delighted to extend an offer for the Investment Associate role at Vertex Capital, Berlin. Compensation: 52k base + 5k performance bonus + standard benefits. Start date: flexible. Please find the formal offer letter attached. We hope you'll join us. Sincerely, HR",
     "expected_classification": "offer",
-    "matches_company": "Speedinvest"
+    "matches_company": "Vertex Capital"
   }
 ]

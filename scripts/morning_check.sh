@@ -23,7 +23,7 @@ ac_status=$(curl -s -o /tmp/cb_ac.json -w "%{http_code}" \
   -X POST "$SUPA/functions/v1/analyze-cv" \
   -H "Authorization: Bearer $ANON" -H "apikey: $ANON" \
   -H "Content-Type: application/json" \
-  -d '{"cvText":"Troels K. CLSBE Master, 1y B2B sales at Acme Corp, German native, English C1.","targetProfile":"Founders Associate, Berlin"}')
+  -d '{"cvText":"Sample Candidate. Strategy graduate, 1y B2B sales at Acme Corp, German native, English C1.","targetProfile":"Founders Associate, Berlin"}')
 echo "  HTTP $ac_status   $(head -c 200 /tmp/cb_ac.json)"
 
 echo "→ match-job"
@@ -32,7 +32,7 @@ mj_status=$(curl -s -o /tmp/cb_mj.json -w "%{http_code}" \
   -H "Authorization: Bearer $ANON" -H "apikey: $ANON" \
   -H "Content-Type: application/json" \
   -d '{
-    "profile":{"name":"Troels","headline":"CLSBE Master, B2B sales","target_role":"Founders Associate","target_geo":"Berlin","strengths":["B2B sales","German native"],"work_history":[{"company":"Acme","role":"BDR","start_date":"2024-09","end_date":"2025-08","bullets":["Closed 14 deals worth €450k"]}]},
+    "profile":{"name":"Sample Candidate","headline":"Strategy graduate, B2B sales","target_role":"Founders Associate","target_geo":"Berlin","strengths":["B2B sales","German native"],"work_history":[{"company":"Acme","role":"BDR","start_date":"2024-09","end_date":"2025-08","bullets":["Closed 14 deals worth €450k"]}]},
     "job":{"company":"Stripe","role":"Strategy Associate","location":"Berlin","description":"Strategy Associate at Stripe...","requirements":"2-4 years strategy/operating role; SQL; English fluent."}
   }')
 echo "  HTTP $mj_status   $(head -c 200 /tmp/cb_mj.json)"
@@ -44,7 +44,7 @@ dm_status=$(curl -s -o /tmp/cb_dm.json -w "%{http_code}" \
   -H "Content-Type: application/json" \
   -d '{
     "kind":"cover_letter",
-    "profile":{"name":"Troels","headline":"CLSBE Master, B2B sales","target_role":"Founders Associate","target_geo":"Berlin","strengths":["B2B sales"],"work_history":[{"company":"Acme","role":"BDR","start_date":"2024-09","end_date":"2025-08","bullets":["Closed 14 deals worth €450k"]}]},
+    "profile":{"name":"Sample Candidate","headline":"Strategy graduate, B2B sales","target_role":"Founders Associate","target_geo":"Berlin","strengths":["B2B sales"],"work_history":[{"company":"Acme","role":"BDR","start_date":"2024-09","end_date":"2025-08","bullets":["Closed 14 deals worth €450k"]}]},
     "job":{"company":"Stripe","role":"Strategy Associate","location":"Berlin","description":"Stripe seeks a Strategy Associate.","requirements":"2-4 years experience; SQL; English."}
   }')
 echo "  HTTP $dm_status   $(head -c 200 /tmp/cb_dm.json)"

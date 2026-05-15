@@ -162,7 +162,7 @@ serve(async (req) => {
 
     const target =
       targetProfile ||
-      "Founders Associate / Operating Associate, Berlin / Remote-DACH, business-background grad (e.g. CLSBE Master), 0-2 years experience.";
+      "Founders Associate / Operating Associate, Berlin / Remote-DACH, business-background grad (e.g. European business-school master), 0-2 years experience.";
 
     const userPrompt = `TARGET PROFILE:\n${target}\n\nCV TEXT:\n${cvText.slice(0, 24000)}`;
 

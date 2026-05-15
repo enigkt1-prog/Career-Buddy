@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-05-07
-- **Deciders:** Troels
+- **Deciders:** Project lead
 
 ## Context
 

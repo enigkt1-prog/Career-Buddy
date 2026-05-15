@@ -18,6 +18,26 @@ artifacts/
 cinema-*.png
 cohesion-*.png
 route-*.png
+bugbash-*.png
+onyx-*.png
+sage-*.png
+slate-*.png
+coral-*.png
+theme-*.png
+smoke-*.png
+phase0-*.png
+phase05-*.png
+final-*.png
+verify-*.png
+profile-*.png
+probe-*.jpg
+probe-*.png
+
+# Nested clones (stray accidental clones inside the working tree)
+/Career-Buddy/
+
+# Internal coordination notes (kept locally, not for public consumption)
+docs/internal/
 
 # Stray non-project files (move out when convenient)
 low_fodmap_foods.csv
