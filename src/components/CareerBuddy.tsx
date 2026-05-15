@@ -6,7 +6,6 @@ import {
   formatSalary,
   relativeDays,
   statusBadge,
-  todayISO,
 } from "@/lib/format";
 import {
   buildProfileTokens,
@@ -16,7 +15,6 @@ import {
   tokenize,
 } from "@/lib/job-fit";
 import {
-  applicationToRow,
   cleanSnippet,
   profileCompleteness,
   profileSignature,
@@ -76,7 +74,7 @@ import {
   type SortKey,
 } from "@/lib/job-filters";
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUserId } from "@/lib/auth";
+import { useCareerBuddyApplications } from "@/lib/use-career-buddy-state";
 import { AddAppModal } from "@/components/applications/AddAppModal";
 import { ApplicationsTracker } from "@/components/applications/ApplicationsTracker";
 import { DraftModal } from "@/components/drafts/DraftModal";
@@ -504,59 +502,16 @@ export default function CareerBuddy({ rolesOnly = false }: CareerBuddyProps = {}
     }
   }
 
-  function syncApp(a: Application) {
-    // Post-multi-user-cutover: applications.user_id is NOT NULL +
-    // RLS-scoped. Anonymous mode → skip Supabase upsert,
-    // localStorage stays canonical (the role-fit + UI work without).
-    void (async () => {
-      const userId = await getCurrentUserId();
-      if (!userId) return;
-      const { error } = await supabase
-        .from("applications")
-        .upsert(applicationToRow(a, userId), {
-          onConflict: "user_id,client_id",
-        });
-      if (error) console.warn("[applications] upsert failed", error.message);
-    })();
-  }
-
-  function addApplication(company: string, role: string, opts?: { url?: string; fit?: number }) {
-    if (state.applications.some((a) => a.company === company && a.role === role)) {
-      return;
-    }
-    const newApp: Application = {
-      id: `a${Date.now()}`,
-      company,
-      role,
-      status: "applied",
-      last_event: todayISO(),
-      next_action: "Awaiting reply",
-      fit: opts?.fit ?? 7.0,
-      url: opts?.url,
-    };
-    setState((s) => ({ ...s, applications: [...s.applications, newApp] }));
-    syncApp(newApp);
-  }
-
-  function updateApplication(id: string, patch: Partial<Application>) {
-    setState((s) => {
-      const next = s.applications.map((a) => (a.id === id ? { ...a, ...patch } : a));
-      const updated = next.find((a) => a.id === id);
-      if (updated) syncApp(updated);
-      return { ...s, applications: next };
-    });
-  }
-
-  function deleteApplication(id: string) {
-    setState((s) => ({ ...s, applications: s.applications.filter((a) => a.id !== id) }));
-    void supabase
-      .from("applications")
-      .delete()
-      .eq("client_id", id)
-      .then(({ error }) => {
-        if (error) console.warn("[applications] delete failed", error.message);
-      });
-  }
+  // Applications mutators extracted into a hook so F4 chat tool
+  // handlers can share the same add/update/delete logic. Hook
+  // operates on the monolith's state slice via a setter adapter.
+  const applicationsApi = useCareerBuddyApplications(
+    state.applications,
+    (updater) =>
+      setState((s) => ({ ...s, applications: updater(s.applications) })),
+  );
+  const { addApplication, updateApplication, deleteApplication } =
+    applicationsApi;
 
   function resetDemo() {
     try {

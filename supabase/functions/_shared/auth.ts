@@ -74,6 +74,36 @@ export async function authenticate(req: Request): Promise<AuthResult> {
 }
 
 /**
+ * Strict variant of {@link authenticate}: always 401s when no valid
+ * token is present, regardless of the `PHASE_AUTH_REQUIRED` env flag.
+ *
+ * New auth-required edge functions (added F1 onwards) MUST use this
+ * helper instead of `authenticate()` so they don't depend on the
+ * dashboard-side flag flip to be safe. The legacy `authenticate()`
+ * helper stays available for the original 5 edge functions until the
+ * F4.x batch migration replaces it everywhere.
+ */
+export async function requireAuth(req: Request): Promise<AuthResult> {
+  const header = req.headers.get("authorization") ?? "";
+  const token = header.replace(/^Bearer\s+/i, "");
+  if (!token) {
+    return { ok: false, status: 401, error: "missing Authorization header" };
+  }
+
+  try {
+    const client = getAuthClient();
+    const { data, error } = await client.auth.getUser(token);
+    if (error || !data?.user?.id) {
+      return { ok: false, status: 401, error: "invalid or expired token" };
+    }
+    return { ok: true, userId: data.user.id };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "auth check failed";
+    return { ok: false, status: 401, error: message };
+  }
+}
+
+/**
  * Convenience: response builder for the failure side of authenticate().
  */
 export function unauthorisedResponse(
