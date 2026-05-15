@@ -196,3 +196,6 @@ If you find a privacy or security concern, please open a GitHub issue or email t
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+<!-- deploy-check: 2026-05-15 -->
+
