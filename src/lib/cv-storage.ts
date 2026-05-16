@@ -189,8 +189,9 @@ export function mergeAnalysisIntoState(
  * — a partial radar reaching `CvRadar` / `CvInsights` (which map
  * `axes` and the `strengths`/`weaknesses`/`gaps` arrays) would crash
  * the render. Returns the radar only when fully shaped: a non-empty
- * `axes` of `{name, score}` plus three string-array insight fields;
- * anything else returns `undefined`.
+ * `axes` of `{name, score}` — non-empty name, score a finite number
+ * in [0,100], matching the analyze-cv server validator — plus three
+ * string-array insight fields; anything else returns `undefined`.
  *
  * Single source of truth — both persisted-radar readers (the Overview
  * monolith via `state.ts migrateProfile`, and the Profile route via
@@ -203,7 +204,14 @@ export function parseRadar(raw: unknown): CvRadar | undefined {
   const axesOk = r.axes.every((a) => {
     if (!a || typeof a !== "object") return false;
     const ax = a as Record<string, unknown>;
-    return typeof ax.name === "string" && typeof ax.score === "number";
+    return (
+      typeof ax.name === "string" &&
+      ax.name.trim().length > 0 &&
+      typeof ax.score === "number" &&
+      Number.isFinite(ax.score) &&
+      ax.score >= 0 &&
+      ax.score <= 100
+    );
   });
   if (!axesOk) return undefined;
   const isStringArray = (v: unknown): boolean =>

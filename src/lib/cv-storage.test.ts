@@ -216,6 +216,13 @@ describe("parseRadar", () => {
     expect(parseRadar({ ...valid, axes: [{ score: 1 }] })).toBeUndefined();
   });
 
+  test("returns undefined for an empty axis name or out-of-range score", () => {
+    expect(parseRadar({ ...valid, axes: [{ name: "  ", score: 50 }] })).toBeUndefined();
+    expect(parseRadar({ ...valid, axes: [{ name: "X", score: -1 }] })).toBeUndefined();
+    expect(parseRadar({ ...valid, axes: [{ name: "X", score: 101 }] })).toBeUndefined();
+    expect(parseRadar({ ...valid, axes: [{ name: "X", score: NaN }] })).toBeUndefined();
+  });
+
   test("returns undefined when an insight field is missing or not a string array", () => {
     expect(parseRadar({ ...valid, strengths: undefined })).toBeUndefined();
     expect(parseRadar({ ...valid, weaknesses: "w" })).toBeUndefined();
