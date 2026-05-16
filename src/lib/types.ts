@@ -10,6 +10,7 @@
  * `loadState` / `migrateProfile` helpers that read these types.
  */
 
+import { type CvRadar } from "./cv-storage";
 import { type FilterPreset } from "./filter-presets";
 import { type Filters, type JobLevel, type SortKey } from "./job-filters";
 import { type MatchEntry } from "./match-cache";
@@ -84,6 +85,7 @@ export type CvAnalysisResponse = {
   work_history?: Array<Omit<Position, "id">>;
   education?: Array<Omit<Education, "id">>;
   skills?: SkillEntry[];
+  radar?: CvRadar;
 };
 
 export type Profile = {
@@ -106,6 +108,7 @@ export type Profile = {
   cv_filename: string | null;
   cv_summary: string | null;
   cv_fit_score: number | null;
+  radar?: CvRadar;
 };
 
 export type State = {

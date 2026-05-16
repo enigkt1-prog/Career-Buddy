@@ -50,6 +50,7 @@ const mockSetProfileFromAnalysis = vi.fn();
 vi.mock("@/lib/profile-store", () => ({
   setProfileFromAnalysis: (analysis: unknown, filename: string) =>
     mockSetProfileFromAnalysis(analysis, filename),
+  loadSelectedTracks: () => [],
 }));
 
 // Import AFTER mocks so the module picks up the stubs.

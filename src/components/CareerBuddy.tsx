@@ -63,6 +63,7 @@ import {
   type VcJob,
 } from "@/lib/types";
 import { STORAGE_KEY } from "@/lib/cv-storage";
+import { setProfileFromAnalysis } from "@/lib/profile-store";
 import {
   DEFAULT_FILTERS,
   applyFilters,
@@ -438,7 +439,11 @@ export default function CareerBuddy({ rolesOnly = false }: CareerBuddyProps = {}
     }
   }
 
-  function applyAnalysis(analysis: CvAnalysisResponse) {
+  async function applyAnalysis(analysis: CvAnalysisResponse) {
+    // Canonical CV-persist path — localStorage + best-effort Supabase
+    // upsert + the F2 radar snapshot. Same helper the Profile route's
+    // CvUploadInline calls; no second persistence path.
+    await setProfileFromAnalysis(analysis, cvFilename ?? "cv.txt");
     setState((s) => {
       const p = s.profile;
       const work = (analysis.work_history ?? []).map((w, i) => ({
@@ -474,6 +479,7 @@ export default function CareerBuddy({ rolesOnly = false }: CareerBuddyProps = {}
           location_preferences: Array.isArray(analysis.location_preferences) && analysis.location_preferences.length ? analysis.location_preferences : p.location_preferences,
           work_history: work.length ? work : p.work_history,
           education: edu.length ? edu : p.education,
+          radar: analysis.radar ?? p.radar,
         },
       };
     });
@@ -489,12 +495,18 @@ export default function CareerBuddy({ rolesOnly = false }: CareerBuddyProps = {}
     try {
       const target = `${state.profile.target_role}, ${state.profile.target_geo}, ${state.profile.background}`;
       const { data, error } = await supabase.functions.invoke("analyze-cv", {
-        body: { cvText, targetProfile: target },
+        body: {
+          cvText,
+          targetProfile: target,
+          // Drives the target-profile-aware radar axis set (F2).
+          targetRoleCategories: state.profile.target_role_categories,
+          cvFilename: cvFilename ?? undefined,
+        },
       });
       if (error) throw error;
       const payload = data as { analysis?: CvAnalysisResponse; error?: string };
       if (!payload?.analysis) throw new Error(payload?.error || "No analysis returned");
-      applyAnalysis(payload.analysis);
+      await applyAnalysis(payload.analysis);
     } catch (e) {
       setCvError(e instanceof Error ? e.message : "Analysis failed");
     } finally {

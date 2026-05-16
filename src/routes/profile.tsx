@@ -10,11 +10,17 @@ import {
   RevealOnScroll,
   SectionDivider,
 } from "@/components/cinema";
+import { CvInsights } from "@/components/profile/CvInsights";
+import { CvRadar } from "@/components/profile/CvRadar";
 import { CvUploadInline } from "@/components/profile/CvUploadInline";
 import { EmailAccounts } from "@/components/profile/EmailAccounts";
 import { ThemePicker } from "@/components/profile/ThemePicker";
 import { usePhoto } from "@/lib/cinema-theme";
-import { loadCareerBuddyState, type SkillEntry } from "@/lib/cv-storage";
+import {
+  loadCareerBuddyState,
+  type CvRadar as CvRadarData,
+  type SkillEntry,
+} from "@/lib/cv-storage";
 import {
   initProfileFromSupabase,
   loadSelectedTracks,
@@ -58,16 +64,26 @@ function readSkillsFromState(): SkillEntry[] {
   return Array.isArray(raw) ? raw : [];
 }
 
+function readRadarFromState(): CvRadarData | null {
+  const raw = loadCareerBuddyState().profile?.radar;
+  if (raw && Array.isArray(raw.axes) && raw.axes.length > 0) {
+    return raw;
+  }
+  return null;
+}
+
 function ProfilePage() {
   const heroImage = usePhoto("profile");
   const [yearsBucket, setYearsBucketState] = useState<YearsBucketId | null>(null);
   const [selectedTracks, setSelectedTracksState] = useState<string[]>([]);
   const [skills, setSkills] = useState<SkillEntry[]>([]);
+  const [radar, setRadar] = useState<CvRadarData | null>(null);
 
   useEffect(() => {
     setSelectedTracksState(loadSelectedTracks());
     setYearsBucketState(loadYearsBucket());
     setSkills(readSkillsFromState());
+    setRadar(readRadarFromState());
     // Best-effort cross-device sync: if Supabase has a newer profile,
     // merge it into local state, then re-read so Section 03 reflects
     // any remote skills the user uploaded on another device.
@@ -75,6 +91,7 @@ function ProfilePage() {
       setSkills(readSkillsFromState());
       setSelectedTracksState(loadSelectedTracks());
       setYearsBucketState(loadYearsBucket());
+      setRadar(readRadarFromState());
     });
   }, []);
 
@@ -94,6 +111,7 @@ function ProfilePage() {
   function refreshAfterCv() {
     setSkills(readSkillsFromState());
     setSelectedTracksState(loadSelectedTracks());
+    setRadar(readRadarFromState());
   }
 
   return (
@@ -336,6 +354,21 @@ function ProfilePage() {
                 </p>
               </div>
               <CvUploadInline onAnalysed={refreshAfterCv} />
+              {radar && (
+                <div className="border-t border-cinema-mint pt-8">
+                  <div className="text-cinema-eyebrow text-cinema-ink-mute mb-2">
+                    Your CV radar
+                  </div>
+                  <p className="text-cinema-body max-w-2xl mb-8">
+                    Six axes scored from your CV. Tap any axis or insight
+                    card to dig into it with Buddy.
+                  </p>
+                  <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-center">
+                    <CvRadar radar={radar} />
+                    <CvInsights radar={radar} />
+                  </div>
+                </div>
+              )}
             </GlassPanel>
           </RevealOnScroll>
         </div>

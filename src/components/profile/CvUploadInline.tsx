@@ -3,7 +3,7 @@ import { Loader2, Upload } from "lucide-react";
 
 import { extractCvText } from "@/lib/cv-parser";
 import { type CvAnalysisResponse } from "@/lib/cv-storage";
-import { setProfileFromAnalysis } from "@/lib/profile-store";
+import { loadSelectedTracks, setProfileFromAnalysis } from "@/lib/profile-store";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceMic } from "@/components/voice/VoiceMic";
 
@@ -66,7 +66,12 @@ export function CvUploadInline({ onAnalysed }: Props = {}) {
       //   body  = { cvText: string, targetProfile?: string }
       //   reply = { analysis: CvAnalysisResponse } | { error: string }
       const { data, error: fnErr } = await supabase.functions.invoke("analyze-cv", {
-        body: { cvText: content.slice(0, 40_000) },
+        body: {
+          cvText: content.slice(0, 40_000),
+          // Drives the target-profile-aware radar axis set (F2).
+          targetRoleCategories: loadSelectedTracks(),
+          cvFilename: filename ?? undefined,
+        },
       });
       if (fnErr) throw fnErr;
       const payload = (data ?? {}) as { analysis?: CvAnalysisResponse; error?: string };
