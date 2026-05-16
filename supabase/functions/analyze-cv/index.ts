@@ -232,23 +232,32 @@ serve(async (req) => {
 
     sanitizeSkills(analysis);
 
-    // Radar — reject a malformed payload (wrong axes, out-of-range
-    // scores, empty insight arrays) rather than persist garbage.
-    let radar;
+    // Radar is additive: a malformed radar payload (wrong axes,
+    // out-of-range scores, empty insight arrays) must not sink the
+    // whole CV analysis. Validate; on failure drop the radar and
+    // return the rest — the UI renders fine without one.
     try {
-      radar = validateRadar((analysis as Record<string, unknown>).radar, radarAxes);
+      const radar = validateRadar(
+        (analysis as Record<string, unknown>).radar,
+        radarAxes,
+      );
+      const snapshotId = await insertRadarSnapshot(
+        req,
+        authResult.userId,
+        radar,
+        typeof cvFilename === "string" ? cvFilename : null,
+      );
+      (analysis as Record<string, unknown>).radar = {
+        ...radar,
+        snapshot_id: snapshotId,
+      };
     } catch (radarErr) {
-      console.error("radar validation failed", radarErr);
-      return jsonResponse({ error: "Gemini returned an invalid radar payload" }, 502);
+      console.error(
+        "radar validation failed — analysis returned without radar",
+        radarErr,
+      );
+      (analysis as Record<string, unknown>).radar = undefined;
     }
-
-    const snapshotId = await insertRadarSnapshot(
-      req,
-      authResult.userId,
-      radar,
-      typeof cvFilename === "string" ? cvFilename : null,
-    );
-    (analysis as Record<string, unknown>).radar = { ...radar, snapshot_id: snapshotId };
 
     return jsonResponse({ analysis });
   } catch (e) {

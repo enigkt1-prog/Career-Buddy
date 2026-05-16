@@ -112,12 +112,9 @@ describe("CvUploadInline — happy path", () => {
       expect.objectContaining({ body: expect.objectContaining({ cvText: longCv }) }),
     );
     expect(mockSetProfileFromAnalysis).toHaveBeenCalledTimes(1);
-    // Filename arg here is the "cv.txt" fallback: the component
-    // captures `filename` from the current render closure, and the
-    // pre-`await extractCvText` `setFilename(file.name)` hasn't
-    // committed by the time `analyse()` reads it. The DOM still
-    // shows "cv.pdf" because the subsequent re-render commits the
-    // state before the test assertion runs.
+    // The file name is passed explicitly through `analyse(content,
+    // file.name)`, so persistence sees the real name — not the
+    // "cv.txt" fallback — despite `setFilename` not having committed.
     const [analysisArg, filenameArg] = mockSetProfileFromAnalysis.mock.calls[0];
     expect(analysisArg).toEqual(
       expect.objectContaining({
@@ -125,7 +122,7 @@ describe("CvUploadInline — happy path", () => {
         skills: [{ name: "Python", level: "advanced" }],
       }),
     );
-    expect(filenameArg).toBe("cv.txt");
+    expect(filenameArg).toBe("cv.pdf");
     expect(screen.getByText(/Open Overview to review/)).toBeInTheDocument();
     expect(screen.getByText("cv.pdf")).toBeInTheDocument();
   });

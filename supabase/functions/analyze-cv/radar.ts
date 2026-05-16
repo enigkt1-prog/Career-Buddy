@@ -33,7 +33,9 @@ export const RADAR_AXES_COMMERCIAL = [
 ] as const;
 
 // Role categories that flip the axis set to the technical variant.
-const TECHNICAL_CATEGORIES = new Set(["engineering", "data-science", "design"]);
+// Ids match the canonical TRACKS list (src/lib/tracks.ts) — the data
+// track id is "data", not "data-science".
+const TECHNICAL_CATEGORIES = new Set(["engineering", "data", "design"]);
 
 export type RadarAxis = { name: string; score: number };
 export type Radar = {

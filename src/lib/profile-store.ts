@@ -232,11 +232,16 @@ function profileToRow(profile: Profile, userId: string | null): UserProfileRow {
  * snapshot row itself is appended server-side by the analyze-cv edge
  * function; `user_radar_snapshots` is not part of the `user_profile`
  * upsert below.
+ *
+ * Returns the merged + persisted {@link CareerBuddyState}. The
+ * Overview monolith feeds this return value straight into its React
+ * state so its own persist effect re-serialises exactly what this
+ * helper already wrote — one writer to `STORAGE_KEY`, no clobber.
  */
 export async function setProfileFromAnalysis(
   analysis: CvAnalysisResponse,
   cvFilename: string,
-): Promise<void> {
+): Promise<CareerBuddyState> {
   const prior = loadCareerBuddyState();
   const merged = mergeAnalysisIntoState(prior, analysis, cvFilename);
   const updatedAt = new Date().toISOString();
@@ -253,7 +258,7 @@ export async function setProfileFromAnalysis(
   // localStorage remains the canonical store; once the user signs
   // in, migrateLocalStorageToSupabase() backfills.
   const userId = await getCurrentUserId();
-  if (!userId) return;
+  if (!userId) return next;
 
   try {
     const row = profileToRow(next.profile as Profile, userId);
@@ -264,6 +269,7 @@ export async function setProfileFromAnalysis(
   } catch {
     /* ignore — localStorage is the canonical store while offline */
   }
+  return next;
 }
 
 /**

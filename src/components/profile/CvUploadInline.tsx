@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Loader2, Upload } from "lucide-react";
 
 import { extractCvText } from "@/lib/cv-parser";
-import { type CvAnalysisResponse } from "@/lib/cv-storage";
+import { loadCareerBuddyState, type CvAnalysisResponse } from "@/lib/cv-storage";
 import { loadSelectedTracks, setProfileFromAnalysis } from "@/lib/profile-store";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceMic } from "@/components/voice/VoiceMic";
@@ -46,31 +46,44 @@ export function CvUploadInline({ onAnalysed }: Props = {}) {
         return;
       }
       setText(extracted);
-      await analyse(extracted);
+      // Pass the file name explicitly — `filename` state is set above
+      // in the same tick and would still read stale inside `analyse`.
+      await analyse(extracted, file.name);
     } catch (e) {
       setPhase("idle");
       setError(e instanceof Error ? e.message : "Could not read file");
     }
   }
 
-  async function analyse(content: string) {
+  /** Build the LLM target-profile string from the persisted profile. */
+  function targetProfileFromState(): string | undefined {
+    const p = loadCareerBuddyState().profile ?? {};
+    const bits = [p.target_role, p.target_geo, p.background].filter(
+      (v): v is string => typeof v === "string" && v.trim().length > 0,
+    );
+    return bits.length ? bits.join(", ") : undefined;
+  }
+
+  async function analyse(content: string, name?: string) {
     if (!content.trim()) {
       setError("Paste CV text or upload a .pdf / .docx file first.");
       return;
     }
+    const effectiveName = name ?? filename;
     setPhase("analysing");
     setError(null);
     try {
       // Edge function contract (verified against
-      // supabase/functions/analyze-cv/index.ts:117 + :181):
-      //   body  = { cvText: string, targetProfile?: string }
+      // supabase/functions/analyze-cv/index.ts):
+      //   body  = { cvText, targetProfile?, targetRoleCategories?, cvFilename? }
       //   reply = { analysis: CvAnalysisResponse } | { error: string }
       const { data, error: fnErr } = await supabase.functions.invoke("analyze-cv", {
         body: {
           cvText: content.slice(0, 40_000),
+          targetProfile: targetProfileFromState(),
           // Drives the target-profile-aware radar axis set (F2).
           targetRoleCategories: loadSelectedTracks(),
-          cvFilename: filename ?? undefined,
+          cvFilename: effectiveName ?? undefined,
         },
       });
       if (fnErr) throw fnErr;
@@ -78,7 +91,7 @@ export function CvUploadInline({ onAnalysed }: Props = {}) {
       if (!payload.analysis) {
         throw new Error(payload.error ?? "analyze-cv returned no analysis");
       }
-      await setProfileFromAnalysis(payload.analysis, filename ?? "cv.txt");
+      await setProfileFromAnalysis(payload.analysis, effectiveName ?? "cv.txt");
       setSummary(payload.analysis.summary ?? "Analysis complete. Open Overview to review.");
       setPhase("done");
       onAnalysed?.();

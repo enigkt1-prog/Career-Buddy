@@ -441,11 +441,12 @@ export default function CareerBuddy({ rolesOnly = false }: CareerBuddyProps = {}
 
   async function applyAnalysis(analysis: CvAnalysisResponse) {
     // Canonical CV-persist path — localStorage + best-effort Supabase
-    // upsert + the F2 radar snapshot. Same helper the Profile route's
-    // CvUploadInline calls; no second persistence path.
-    await setProfileFromAnalysis(analysis, cvFilename ?? "cv.txt");
+    // upsert + the F2 radar snapshot. Same helper CvUploadInline calls.
+    // Feeding the returned merged state into React state means the
+    // monolith's persist effect re-serialises exactly what the helper
+    // wrote — one writer to STORAGE_KEY, no divergent second path.
+    const persisted = await setProfileFromAnalysis(analysis, cvFilename ?? "cv.txt");
     setState((s) => {
-      const p = s.profile;
       const work = (analysis.work_history ?? []).map((w, i) => ({
         id: `w${Date.now()}_${i}`,
         company: w.company || "",
@@ -462,24 +463,17 @@ export default function CareerBuddy({ rolesOnly = false }: CareerBuddyProps = {}
         start_date: e.start_date,
         end_date: e.end_date,
       }));
+      // mergedProfile carries every profile field the canonical helper
+      // merged (incl. radar + updated_at); work_history / education are
+      // re-mapped here to the monolith's id-bearing shape.
+      const mergedProfile = (persisted.profile ?? {}) as unknown as Partial<Profile>;
       return {
         ...s,
         profile: {
-          ...p,
-          cv_analyzed: true,
-          cv_filename: cvFilename,
-          cv_summary: analysis.summary ?? null,
-          cv_fit_score: typeof analysis.fit_score === "number" ? analysis.fit_score : null,
-          name: analysis.name?.trim() || p.name,
-          headline: analysis.headline?.trim() || p.headline,
-          strengths: Array.isArray(analysis.strengths) && analysis.strengths.length ? analysis.strengths : p.strengths,
-          gaps: Array.isArray(analysis.gaps) && analysis.gaps.length ? analysis.gaps : p.gaps,
-          recommendations: Array.isArray(analysis.recommendations) && analysis.recommendations.length ? analysis.recommendations : p.recommendations,
-          target_role_categories: Array.isArray(analysis.target_role_categories) && analysis.target_role_categories.length ? analysis.target_role_categories : p.target_role_categories,
-          location_preferences: Array.isArray(analysis.location_preferences) && analysis.location_preferences.length ? analysis.location_preferences : p.location_preferences,
-          work_history: work.length ? work : p.work_history,
-          education: edu.length ? edu : p.education,
-          radar: analysis.radar ?? p.radar,
+          ...s.profile,
+          ...mergedProfile,
+          work_history: work.length ? work : s.profile.work_history,
+          education: edu.length ? edu : s.profile.education,
         },
       };
     });

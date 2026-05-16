@@ -58,6 +58,8 @@ Deno.test("validateRadar rejects undefined", () => {
 
 Deno.test("selectRadarAxes returns technical axes for engineering roles", () => {
   assertEquals(selectRadarAxes(["engineering"]), RADAR_AXES_TECHNICAL);
+  assertEquals(selectRadarAxes(["data"]), RADAR_AXES_TECHNICAL);
+  assertEquals(selectRadarAxes(["design"]), RADAR_AXES_TECHNICAL);
 });
 
 Deno.test("selectRadarAxes defaults to commercial axes", () => {

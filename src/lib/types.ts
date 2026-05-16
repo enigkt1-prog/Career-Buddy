@@ -85,6 +85,8 @@ export type CvAnalysisResponse = {
   work_history?: Array<Omit<Position, "id">>;
   education?: Array<Omit<Education, "id">>;
   skills?: SkillEntry[];
+  // F2 CV radar. Type owned by @/lib/cv-storage (which carries its
+  // own parallel CvAnalysisResponse/Profile) — keep this field in sync.
   radar?: CvRadar;
 };
 
@@ -108,6 +110,8 @@ export type Profile = {
   cv_filename: string | null;
   cv_summary: string | null;
   cv_fit_score: number | null;
+  // F2 CV radar. Type owned by @/lib/cv-storage (which carries its
+  // own parallel CvAnalysisResponse/Profile) — keep this field in sync.
   radar?: CvRadar;
 };
 

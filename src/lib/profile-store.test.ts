@@ -302,9 +302,9 @@ describe("setProfileFromAnalysis", () => {
 
   test("Supabase failure does not throw; localStorage still saved", async () => {
     mockUpsert.mockRejectedValueOnce(new Error("network down"));
-    await expect(
-      setProfileFromAnalysis(sampleAnalysis, "cv.pdf"),
-    ).resolves.toBeUndefined();
+    const result = await setProfileFromAnalysis(sampleAnalysis, "cv.pdf");
+    // Resolves with the merged state even when the upsert fails.
+    expect(result.profile?.name).toBe("Sample Candidate");
     const state = loadCareerBuddyState();
     expect(state.profile?.name).toBe("Sample Candidate");
   });
