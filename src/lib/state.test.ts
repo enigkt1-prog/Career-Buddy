@@ -119,6 +119,26 @@ describe("migrateProfile", () => {
     expect(migrateProfile({ skills: "nope" }).skills).toEqual([]);
     expect(migrateProfile({}).skills).toEqual([]);
   });
+
+  test("preserves a persisted radar + updated_at (F2)", () => {
+    const radar = {
+      axes: [{ name: "Leadership", score: 70 }],
+      strengths: ["s"],
+      weaknesses: ["w"],
+      gaps: ["g"],
+      snapshot_id: "snap-1",
+    };
+    const out = migrateProfile({ radar, updated_at: "2026-05-16T00:00:00.000Z" });
+    expect(out.radar).toEqual(radar);
+    expect(out.updated_at).toBe("2026-05-16T00:00:00.000Z");
+  });
+
+  test("drops a malformed radar / non-string updated_at", () => {
+    expect(migrateProfile({ radar: { axes: "nope" } }).radar).toBeUndefined();
+    expect(migrateProfile({ radar: { axes: [] } }).radar).toBeUndefined();
+    expect(migrateProfile({ radar: 42 }).radar).toBeUndefined();
+    expect(migrateProfile({ updated_at: 123 }).updated_at).toBeUndefined();
+  });
 });
 
 describe("loadState", () => {
@@ -158,6 +178,25 @@ describe("loadState", () => {
     expect(out.profile.built).toBe(true);
     expect(out.sync_completed).toBe(true);
     expect(out.dismissed_urls).toEqual(["http://example.com/job/1"]);
+  });
+
+  test("round-trips a persisted radar through loadState (F2)", () => {
+    const radar = {
+      axes: [{ name: "Execution", score: 82 }],
+      strengths: ["s"],
+      weaknesses: ["w"],
+      gaps: ["g"],
+      snapshot_id: "snap-9",
+    };
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        profile: { name: "Alex", radar, updated_at: "2026-05-16T10:00:00.000Z" },
+      }),
+    );
+    const out = loadState();
+    expect(out.profile.radar).toEqual(radar);
+    expect(out.profile.updated_at).toBe("2026-05-16T10:00:00.000Z");
   });
 
   test("empty applications array falls back to SEED_APPS (also [])", () => {

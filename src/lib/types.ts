@@ -113,6 +113,10 @@ export type Profile = {
   // F2 CV radar. Type owned by @/lib/cv-storage (which carries its
   // own parallel CvAnalysisResponse/Profile) — keep this field in sync.
   radar?: CvRadar;
+  // Set by profile-store.setProfileFromAnalysis; used by the Supabase
+  // freshness check. Carried through migrateProfile so an Overview
+  // visit does not strip it.
+  updated_at?: string;
 };
 
 export type State = {

@@ -7,7 +7,7 @@
  * or missing fields fall back to {@link emptyState} / DEFAULT_PROFILE.
  */
 
-import { STORAGE_KEY } from "./cv-storage";
+import { STORAGE_KEY, type CvRadar } from "./cv-storage";
 import {
   DEFAULT_PROFILE,
   SEED_APPS,
@@ -43,6 +43,19 @@ function migrateSkill(entry: unknown): SkillEntry | null {
     out.evidence = e.evidence.trim();
   }
   return out;
+}
+
+/**
+ * Carry a persisted CV radar through unchanged. analyze-cv Zod-
+ * validated the shape on write, so a light structural check (an
+ * object with a non-empty `axes` array) is enough; anything else
+ * drops to `undefined`.
+ */
+function migrateRadar(raw: unknown): CvRadar | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const axes = (raw as Record<string, unknown>).axes;
+  if (!Array.isArray(axes) || axes.length === 0) return undefined;
+  return raw as CvRadar;
 }
 
 export function emptyState(): State {
@@ -104,6 +117,10 @@ export function migrateProfile(raw: unknown): Profile {
     cv_filename: typeof r.cv_filename === "string" ? r.cv_filename : null,
     cv_summary: typeof r.cv_summary === "string" ? r.cv_summary : null,
     cv_fit_score: num("cv_fit_score"),
+    // F2: preserve the radar + the Supabase freshness timestamp so an
+    // Overview mount (setState(loadState())) does not strip them.
+    radar: migrateRadar(r.radar),
+    updated_at: typeof r.updated_at === "string" ? r.updated_at : undefined,
   };
 }
 
