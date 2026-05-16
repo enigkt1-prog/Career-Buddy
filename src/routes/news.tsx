@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { CinematicHero, SectionDivider } from "@/components/cinema";
+import { CompanyNewsFeed } from "@/components/news/CompanyNewsFeed";
 import { NewsFeed } from "@/components/news/NewsFeed";
 import { usePhoto } from "@/lib/cinema-theme";
 
@@ -21,7 +22,8 @@ export const Route = createFileRoute("/news")({
 /**
  * F1 — News v1. A daily-return loop: the best-fit roles posted today
  * / this week / since the user last looked. Ranked client-side
- * against the persisted profile. Company news (F3) lands here later.
+ * against the persisted profile. Company news (F3) renders below the
+ * top-jobs feed.
  */
 function NewsPage() {
   const heroImage = usePhoto("jobs");
@@ -44,6 +46,7 @@ function NewsPage() {
       <SectionDivider from="cream" to="white" />
       <div className="bg-white">
         <NewsFeed />
+        <CompanyNewsFeed />
       </div>
     </div>
   );

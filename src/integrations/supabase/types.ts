@@ -525,6 +525,63 @@ export type Database = {
         }
         Relationships: []
       }
+      company_news: {
+        Row: {
+          id: string
+          company_name: string
+          headline: string
+          title_hash: string
+          url: string
+          summary: string | null
+          source: string | null
+          published_at: string
+          fetched_at: string
+          archived_at: string | null
+        }
+        Insert: {
+          id?: string
+          company_name: string
+          headline: string
+          title_hash: string
+          url: string
+          summary?: string | null
+          source?: string | null
+          published_at: string
+          fetched_at?: string
+          archived_at?: string | null
+        }
+        Update: {
+          id?: string
+          company_name?: string
+          headline?: string
+          title_hash?: string
+          url?: string
+          summary?: string | null
+          source?: string | null
+          published_at?: string
+          fetched_at?: string
+          archived_at?: string | null
+        }
+        Relationships: []
+      }
+      user_target_companies: {
+        Row: {
+          user_id: string
+          company_name: string
+          added_at: string
+        }
+        Insert: {
+          user_id: string
+          company_name: string
+          added_at?: string
+        }
+        Update: {
+          user_id?: string
+          company_name?: string
+          added_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
