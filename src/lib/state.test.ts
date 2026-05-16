@@ -134,9 +134,30 @@ describe("migrateProfile", () => {
   });
 
   test("drops a malformed radar / non-string updated_at", () => {
-    expect(migrateProfile({ radar: { axes: "nope" } }).radar).toBeUndefined();
-    expect(migrateProfile({ radar: { axes: [] } }).radar).toBeUndefined();
+    const insights = { strengths: ["s"], weaknesses: ["w"], gaps: ["g"] };
+    expect(migrateProfile({ radar: { axes: "nope", ...insights } }).radar).toBeUndefined();
+    expect(migrateProfile({ radar: { axes: [], ...insights } }).radar).toBeUndefined();
     expect(migrateProfile({ radar: 42 }).radar).toBeUndefined();
+    // axis entries missing name / score
+    expect(
+      migrateProfile({ radar: { axes: [{}], ...insights } }).radar,
+    ).toBeUndefined();
+    // insight field missing or not a string array
+    expect(
+      migrateProfile({
+        radar: { axes: [{ name: "Leadership", score: 70 }], weaknesses: ["w"], gaps: ["g"] },
+      }).radar,
+    ).toBeUndefined();
+    expect(
+      migrateProfile({
+        radar: {
+          axes: [{ name: "Leadership", score: 70 }],
+          strengths: [1, 2],
+          weaknesses: ["w"],
+          gaps: ["g"],
+        },
+      }).radar,
+    ).toBeUndefined();
     expect(migrateProfile({ updated_at: 123 }).updated_at).toBeUndefined();
   });
 });

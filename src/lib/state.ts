@@ -46,15 +46,28 @@ function migrateSkill(entry: unknown): SkillEntry | null {
 }
 
 /**
- * Carry a persisted CV radar through unchanged. analyze-cv Zod-
- * validated the shape on write, so a light structural check (an
- * object with a non-empty `axes` array) is enough; anything else
- * drops to `undefined`.
+ * Carry a persisted CV radar through, fully shape-checked. analyze-cv
+ * Zod-validates on write, but localStorage can hold a hand-edited or
+ * older-shape value — a partial radar that reaches `CvInsights`
+ * (which maps `strengths` / `weaknesses` / `gaps`) would crash the
+ * render. So require a non-empty `axes` of `{name, score}` plus three
+ * string-array insight fields; anything else drops to `undefined`.
  */
 function migrateRadar(raw: unknown): CvRadar | undefined {
   if (!raw || typeof raw !== "object") return undefined;
-  const axes = (raw as Record<string, unknown>).axes;
-  if (!Array.isArray(axes) || axes.length === 0) return undefined;
+  const r = raw as Record<string, unknown>;
+  if (!Array.isArray(r.axes) || r.axes.length === 0) return undefined;
+  const axesOk = r.axes.every((a) => {
+    if (!a || typeof a !== "object") return false;
+    const ax = a as Record<string, unknown>;
+    return typeof ax.name === "string" && typeof ax.score === "number";
+  });
+  if (!axesOk) return undefined;
+  const isStringArray = (v: unknown): boolean =>
+    Array.isArray(v) && v.every((x) => typeof x === "string");
+  if (!isStringArray(r.strengths) || !isStringArray(r.weaknesses) || !isStringArray(r.gaps)) {
+    return undefined;
+  }
   return raw as CvRadar;
 }
 
