@@ -252,9 +252,9 @@ def _llm_is_relevant(llm: ClaudeCli, headline: str, company: str) -> bool:
     """Ask Claude whether a borderline headline is news about the company.
 
     The headline is scraped (untrusted) and the company name is partly
-    user-supplied — both are JSON-encoded inside a ``<data>`` block and
-    the prompt instructs the model to treat the block as data only, so a
-    crafted headline cannot redirect the classifier.
+    user-supplied — both go into a JSON object on the prompt's ``DATA:``
+    line and the prompt instructs the model to treat every value as data
+    only, so a crafted headline cannot redirect the classifier.
     """
     # The DATA line is a JSON object — json.dumps escapes quotes and
     # control characters, so the headline value cannot break out of its

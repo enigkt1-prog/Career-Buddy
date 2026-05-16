@@ -7,8 +7,16 @@
 //
 // Auth: `requireAuth` (never anonymous — F0 strict helper). DB reads run
 // under the caller's JWT so RLS scopes `applications` /
-// `user_target_companies` to the user; `company_news` is a public
-// catalog (authenticated-read) filtered here to the user's companies.
+// `user_target_companies` to the user.
+//
+// `company_news` is, by design, a shared authenticated-read catalog —
+// the same posture as the `jobs` table. It carries no user_id and no
+// per-user attribution; its rows are public Google-News headlines for
+// companies that are mostly public job-board companies. This handler is
+// the only read path the app uses, and it scopes the *feed* to the
+// caller's own companies. The residual that a determined authenticated
+// user could enumerate the catalog's company set directly was weighed
+// and accepted: no attribution, public content, catalog-shaped data.
 //
 // `index.ts` wires this handler into `serve()`; kept separate so tests
 // can import `handleRequest` without binding a port.
